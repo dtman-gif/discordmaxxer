@@ -485,5 +485,6 @@ export async function createWindows() {
         }
     });
 
+    mainWin.webContents.on("render-process-gone", (event, details) => console.log(details));
     initArRPC();
 }
