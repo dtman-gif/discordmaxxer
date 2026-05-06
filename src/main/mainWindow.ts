@@ -87,14 +87,14 @@ function initMenuBar(win: BrowserWindow) {
                 app.relaunch();
                 app.quit();
             },
-            toolTip: "Vesktop will automatically restart after this operation"
+            toolTip: "Discordmaxxer will automatically restart after this operation"
         },
         {
-            label: "Reset Vesktop",
+            label: "Reset Discordmaxxer",
             async click() {
                 await clearData(win);
             },
-            toolTip: "Vesktop will automatically restart after this operation"
+            toolTip: "Discordmaxxer will automatically restart after this operation"
         },
         {
             label: "Relaunch",
@@ -161,7 +161,7 @@ function initMenuBar(win: BrowserWindow) {
 
     const menuItems = [
         {
-            label: "Vesktop",
+            label: "Discordmaxxer",
             role: "appMenu",
             submenu: subMenu.filter(isTruthy)
         },
@@ -270,7 +270,7 @@ function initStaticTitle(win: BrowserWindow) {
 
     addSettingsListener("staticTitle", enabled => {
         if (enabled) {
-            win.setTitle("Vesktop");
+            win.setTitle("Discordmaxxer");
             win.on("page-title-updated", listener);
         } else {
             win.off("page-title-updated", listener);
@@ -354,7 +354,7 @@ function buildBrowserWindowOptions(): BrowserWindowConstructorOptions {
     }
 
     if (staticTitle) {
-        options.title = "Vesktop";
+        options.title = "Discordmaxxer";
     }
 
     if (process.platform === "darwin") {

@@ -20,17 +20,16 @@ export { Settings };
 
 import type SettingsPlugin from "@vencord/types/plugins/_core/settings";
 
-VesktopLogger.log("read if cute :3");
-VesktopLogger.log("Vesktop v" + VesktopNative.app.getVersion());
+VesktopLogger.log("Discordmaxxer v" + VesktopNative.app.getVersion());
 
 // TODO
 const customSettingsSections = (Vencord.Plugins.plugins.Settings as typeof SettingsPlugin).customSections;
 
 customSettingsSections.push(() => ({
-    section: "Vesktop",
-    label: "Vesktop Settings",
+    section: "Discordmaxxer",
+    label: "Discordmaxxer Settings",
     element: SettingsUi,
-    className: "vc-vesktop-settings"
+    className: "vc-discordmaxxer-settings"
 }));
 
 // TODO: remove this legacy workaround once some time has passed

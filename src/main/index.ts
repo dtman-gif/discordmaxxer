@@ -7,12 +7,14 @@
 import "./cli";
 import "./updater";
 import "./ipc";
+import "./discordmaxxerHotkeys";
 import "./userAssets";
 import "./vesktopProtocol";
 
 import { app, BrowserWindow, nativeTheme } from "electron";
 
 import { DATA_DIR } from "./constants";
+import { seedDiscordmaxxerDefaults } from "./discordmaxxerDefaults";
 import { createFirstLaunchTour } from "./firstLaunch";
 import { createWindows, mainWin } from "./mainWindow";
 import { registerMediaPermissionsHandler } from "./mediaPermissions";
@@ -21,7 +23,7 @@ import { Settings, State } from "./settings";
 import { setAsDefaultProtocolClient } from "./utils/setAsDefaultProtocolClient";
 import { isDeckGameMode } from "./utils/steamOS";
 
-console.log("Vesktop v" + app.getVersion());
+console.log("Discordmaxxer v" + app.getVersion());
 
 // Make the Vencord files use our DATA_DIR
 process.env.VENCORD_USER_DATA_DIR = DATA_DIR;
@@ -111,7 +113,7 @@ function init() {
     });
 
     app.whenReady().then(async () => {
-        if (process.platform === "win32") app.setAppUserModelId("dev.vencord.vesktop");
+        if (process.platform === "win32") app.setAppUserModelId("dev.diggy.discordmaxxer");
 
         registerScreenShareHandler();
         registerMediaPermissionsHandler();
@@ -126,10 +128,10 @@ function init() {
 
 if (!app.requestSingleInstanceLock({ IS_DEV })) {
     if (IS_DEV) {
-        console.log("Vesktop is already running. Quitting previous instance...");
+        console.log("Discordmaxxer is already running. Quitting previous instance...");
         init();
     } else {
-        console.log("Vesktop is already running. Quitting...");
+        console.log("Discordmaxxer is already running. Quitting...");
         app.quit();
     }
 } else {
@@ -137,6 +139,7 @@ if (!app.requestSingleInstanceLock({ IS_DEV })) {
 }
 
 async function bootstrap() {
+    seedDiscordmaxxerDefaults();
     if (!Object.hasOwn(State.store, "firstLaunch")) {
         createFirstLaunchTour();
     } else {

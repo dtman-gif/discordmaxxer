@@ -86,7 +86,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
     ]);
 
     tray = new Tray(await resolveAssetPath(trayVariant));
-    tray.setToolTip("Vesktop");
+    tray.setToolTip("Discordmaxxer");
     tray.setContextMenu(trayMenu);
     tray.on("click", onTrayClick);
 }

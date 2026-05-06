@@ -1,60 +1,44 @@
-# Vesktop
+# Discordmaxxer
 
-Vesktop is a custom Discord desktop app
+> Discord, optimized.
 
-**Main features**:
-- Vencord preinstalled
-- Much more lightweight and faster than the official Discord app
-- Linux Screenshare with sound & wayland
-- Much better privacy, since Discord has no access to your system
+A standalone Discord client with 30+ client-side enhancements pre-enabled, custom branding, and original plugins for tournament low-latency mode, mass-delete with safeguards, and GIF picker upgrades.
 
-**Not yet supported**:
-- Global Keybinds
-- see the [Roadmap](https://github.com/Vencord/Vesktop/issues/324)
+7th project in the [maxxer suite](../).
 
-![](https://github.com/Vencord/Vesktop/assets/45497981/8608a899-96a9-4027-9725-2cb02ba189fd)
-![](https://github.com/Vencord/Vesktop/assets/45497981/8701e5de-52c4-4346-a990-719cb971642e)
+**Status:** v0.1 — in development (P0 bootstrap complete).
 
-## Installing
+---
 
-Visit https://vesktop.dev/install
+## What it is
 
-## Building from Source
+A fork of [Vesktop](https://github.com/Vencord/Vesktop) (which itself bundles [Vencord](https://github.com/Vendicated/Vencord)). Single download, no official Discord install needed. Ships with sensible defaults, original plugins, and a clean rebrand.
 
-You need to have the following dependencies installed:
-- [Git](https://git-scm.com/downloads)
-- [Node.js](https://nodejs.org/en/download)
-- pnpm: `npm install --global pnpm`
+## Headline features
 
-Packaging will create builds in the dist/ folder
+- **30+ Vencord plugins enabled by default** — FakeNitro, MessageLogger (see deleted), ClearURLs, ClientTheme, FriendsSince, ImageZoom, TypingTweaks, RelationshipNotifier, SilentTyping, GifPaste, VolumeBooster, BetterFolders, BetterSettings, MentionAvatars, PinDMs, ReadAllNotificationsButton, TextReplace, ThemeLibrary, WebKeybinds, WebScreenShareFix, and more.
+- **TournamentMode** (custom) — global hotkey kills animations, RPC, badge polling, and voice noise-suppression for low-input-delay competitive sessions.
+- **CompactView** (custom) — hotkey to hide server list, channels, and member sidebar. Optional auto-hide on screenshare. For vertical-monitor users.
+- **MassDelete** (custom, opt-in) — bulk-delete your own messages with rate-limiting and ban-risk warnings.
+- **GIF picker upgrades** (custom) — opens favorites by default, search bar over favorites.
+- **DiscordmaxxerBadge** (custom) — viral identity layer with supporter-unlock removal.
+- **~30% less RAM** than official Discord (telemetry stripped, bundle trimmed).
 
-```sh
-git clone https://github.com/Vencord/Vesktop
-cd Vesktop
+## Building from source
 
-# Install Dependencies
-pnpm i
+Requires Git, Node.js ≥ 18, pnpm ≥ 8.
 
-# Either run it without packaging
-pnpm start
-
-# Or package (will build packages for your OS)
-pnpm package
-
-# Or only build the Linux Pacman package
-pnpm package --linux pacman
-
-# Or package to a directory only
-pnpm package:dir
+```powershell
+pnpm install
+pnpm build
+pnpm start          # launches the app
+pnpm package        # produces installers in dist/
 ```
 
-## Building LibVesktop from Source
+## License + attribution
 
-This is a small C++ helper library Vesktop uses on Linux to emit D-Bus events. By default, prebuilt binaries for x64 and arm64 are used.
+GPL-3.0-or-later. This is a fork of Vesktop (GPL-3.0). See [NOTICE.md](NOTICE.md) for full upstream credits.
 
-If you want to build it from source:
-1. Install build dependencies:
-    - Debian/Ubuntu: `apt install build-essential python3 curl pkg-config libglib2.0-dev`
-    - Fedora: `dnf install @c-development @development-tools python3 curl pkgconf-pkg-config glib2-devel`
-2. Run `pnpm buildLibVesktop`
-3. From now on, building Vesktop will use your own build
+## Risk disclaimer
+
+Client-modding Discord violates Discord's ToS. Enforcement is rare for personal use of plugin-based clients (Vencord has ~1M users). MassDelete carries higher risk — gated, rate-limited, opt-in for that reason. Use at your own discretion.

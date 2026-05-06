@@ -4,3 +4,10 @@ node_modules
 .DS_Store
 .idea/
 .pnpm-store/
+
+# Discordmaxxer overlay
+vencord-src/
+vencord-dist/
+overlay-scripts/*.log
+overlay-scripts/screenshots/
+overlay-scripts/reports/

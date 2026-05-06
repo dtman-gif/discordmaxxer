@@ -1,16 +1,27 @@
 {
-    "name": "vesktop",
-    "version": "1.6.5",
+    "name": "discordmaxxer",
+    "version": "0.1.0",
     "private": true,
-    "description": "Vesktop is a custom Discord desktop app",
-    "keywords": [],
-    "homepage": "https://vencord.dev/",
+    "description": "Discord, optimized. 7th project in the maxxer suite. Forked from Vesktop.",
+    "keywords": [
+        "discord",
+        "discordmaxxer",
+        "vesktop",
+        "vencord",
+        "electron"
+    ],
+    "homepage": "https://github.com/diggy/discordmaxxer",
     "license": "GPL-3.0-or-later",
-    "author": "Vendicated <vendicated@riseup.net>",
+    "author": "Diggy",
+    "contributors": [
+        "Vendicated <vendicated@riseup.net> (original Vesktop author)"
+    ],
     "main": "dist/js/main.js",
     "scripts": {
         "build": "tsx scripts/build/build.mts",
         "build:dev": "pnpm build --dev",
+        "overlay:vencord": "node overlay-scripts/build-vencord.mjs",
+        "overlay:full": "pnpm overlay:vencord && pnpm build:dev",
         "buildLibVesktop": "pnpm -C packages/libvesktop install && pnpm -C packages/libvesktop run build",
         "package": "pnpm build && electron-builder",
         "package:dir": "pnpm build && electron-builder --dir",
@@ -18,6 +29,7 @@
         "lint:fix": "pnpm lint --fix",
         "start": "pnpm build && electron .",
         "start:dev": "pnpm build:dev && electron .",
+        "start:dev:debug": "pnpm build:dev && electron . --remote-debugging-port=9222",
         "start:watch": "pnpm build:dev && tsx scripts/startWatch.mts",
         "test": "pnpm lint && pnpm testTypes",
         "testTypes": "tsc --noEmit",
@@ -53,6 +65,7 @@
         "eslint-plugin-unused-imports": "^4.4.1",
         "libvesktop": "link:packages/libvesktop",
         "prettier": "^3.8.1",
+        "puppeteer-core": "^24.42.0",
         "source-map-support": "^0.5.21",
         "tsx": "^4.21.0",
         "type-fest": "^5.5.0",
@@ -66,9 +79,9 @@
         "pnpm": ">=8"
     },
     "build": {
-        "appId": "dev.vencord.vesktop",
-        "productName": "Vesktop",
-        "executableName": "vesktop",
+        "appId": "dev.diggy.discordmaxxer",
+        "productName": "Discordmaxxer",
+        "executableName": "discordmaxxer",
         "files": [
             "!*",
             "!node_modules",
@@ -121,13 +134,13 @@
             ],
             "desktop": {
                 "entry": {
-                    "Name": "Vesktop",
+                    "Name": "Discordmaxxer",
                     "GenericName": "Internet Messenger",
                     "Type": "Application",
                     "Categories": "Network;InstantMessaging;Chat;",
-                    "Keywords": "discord;vencord;electron;chat;",
+                    "Keywords": "discord;discordmaxxer;vencord;electron;chat;",
                     "MimeType": "x-scheme-handler/discord",
-                    "StartupWMClass": "vesktop"
+                    "StartupWMClass": "discordmaxxer"
                 }
             }
         },
