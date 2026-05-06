@@ -23,6 +23,7 @@ interface Data {
     autoStart?: "on";
     importSettings?: "on";
     richPresence?: "on";
+    skipTips?: "on";
 }
 
 export function createFirstLaunchTour() {
@@ -45,6 +46,7 @@ export function createFirstLaunchTour() {
         const data = JSON.parse(msg.slice(5)) as Data;
 
         State.store.firstLaunch = false;
+        State.store.discordmaxxerSkipTips = !!data.skipTips;
         Settings.store.discordBranch = data.discordBranch;
         Settings.store.minimizeToTray = !!data.minimizeToTray;
         Settings.store.arRPC = !!data.richPresence;
@@ -52,20 +54,22 @@ export function createFirstLaunchTour() {
         if (data.autoStart) autoStart.enable();
 
         if (data.importSettings) {
-            const from = join(app.getPath("userData"), "..", "Vencord", "settings");
+            // Look for any prior client install's settings dir under userData's parent.
+            // Order: discordmaxxer's prior install, vencord (legacy), vesktop (legacy).
+            const candidates = ["Discordmaxxer", "Vencord", "Vesktop"]
+                .map(name => join(app.getPath("userData"), "..", name, "settings"))
+                .filter(p => p !== join(DATA_DIR, "settings")); // never copy from self
             const to = join(DATA_DIR, "settings");
-            try {
-                const files = readdirSync(from);
-                mkdirSync(to, { recursive: true });
-
-                for (const file of files) {
-                    copyFileSync(join(from, file), join(to, file));
-                }
-            } catch (e) {
-                if (e instanceof Error && "code" in e && e.code === "ENOENT") {
-                    console.log("No Vencord settings found to import.");
-                } else {
-                    console.error("Failed to import Vencord settings:", e);
+            for (const from of candidates) {
+                try {
+                    const files = readdirSync(from);
+                    mkdirSync(to, { recursive: true });
+                    for (const file of files) copyFileSync(join(from, file), join(to, file));
+                    console.log(`[Discordmaxxer] Imported settings from ${from}`);
+                    break;
+                } catch (e) {
+                    if (e instanceof Error && "code" in e && e.code === "ENOENT") continue;
+                    console.error(`Failed to import settings from ${from}:`, e);
                 }
             }
         }

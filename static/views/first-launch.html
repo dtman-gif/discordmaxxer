@@ -119,7 +119,7 @@
 
 <body>
     <h1>Welcome to Discordmaxxer</h1>
-    <p>Let's customise your experience!</p>
+    <p>Discord, optimized. Let's set up the basics.</p>
 
     <form>
         <label>
@@ -142,16 +142,15 @@
         <label>
             <div>
                 <h2>Rich Presence</h2>
-                <span>Enable Rich presence (game activity) via
-                    <a href="https://github.com/OpenAsar/arrpc" target="_blank">arRPC</a></span>
+                <span>Show what game you're playing in Discord (disabled by Tournament Mode)</span>
             </div>
             <input type="checkbox" name="richPresence" checked />
         </label>
 
         <label>
             <div>
-                <h2>Import Settings</h2>
-                <span>Import Settings from existing Vencord install (if found)</span>
+                <h2>Import Existing Settings</h2>
+                <span>If a previous client install is found, import its plugin choices</span>
             </div>
             <input type="checkbox" name="importSettings" checked />
         </label>
@@ -162,6 +161,14 @@
                 <span>Minimise to Tray when closing</span>
             </div>
             <input type="checkbox" name="minimizeToTray" checked />
+        </label>
+
+        <label>
+            <div>
+                <h2>Skip First-Load Tips</h2>
+                <span>Don't show tooltips on first load. Recommended off if this is your first time using Discordmaxxer.</span>
+            </div>
+            <input type="checkbox" name="skipTips" />
         </label>
     </form>
     <div id="buttons">
