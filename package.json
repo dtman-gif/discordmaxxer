@@ -101,6 +101,12 @@
             "package.json",
             "LICENSE"
         ],
+        "extraResources": [
+            {
+                "from": "vencord-dist",
+                "to": "vencord-dist"
+            }
+        ],
         "protocols": {
             "name": "Discord",
             "schemes": [

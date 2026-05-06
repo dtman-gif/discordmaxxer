@@ -23,6 +23,9 @@ const FAB_ID = "dm-hub-fab";
 const PANEL_ID = "dm-hub-panel";
 const PANEL_ROOT_ID = "dm-hub-panel-root";
 
+// Lightning-bolt mark — same shape as build/icon.svg, scaled for inline use.
+const HUB_LOGO_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 5 L8 13 L11.5 13 L9.5 19 L16 11 L12.5 11 Z" fill="#ffffff" stroke="#fbe8ff" stroke-width="0.3"/></svg>`;
+
 let panelRoot: HTMLDivElement | null = null;
 let style: HTMLStyleElement;
 let observer: MutationObserver | null = null;
@@ -166,17 +169,21 @@ const HUB_CSS = `
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 22px;
-        height: 22px;
-        margin-right: 6px;
-        background: linear-gradient(135deg, #e25bff, #4c51f7);
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 900;
-        color: #fbefff;
-        letter-spacing: -0.5px;
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+        background: linear-gradient(135deg, #f37bff 0%, #a256fb 50%, #4c51f7 100%);
+        border-radius: 5px;
         vertical-align: middle;
+        cursor: help;
+        transition: transform 0.18s, box-shadow 0.18s;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset;
     }
+    .dm-hub-mark:hover {
+        transform: scale(1.12) rotate(-3deg);
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.3) inset, 0 0 14px rgba(226,91,255,0.7);
+    }
+    .dm-hub-mark svg { display: block; }
     .dm-hub-action-btn {
         background: linear-gradient(135deg, rgba(226,91,255,0.25), rgba(76,81,247,0.25));
         color: #fbefff;
@@ -303,7 +310,7 @@ function renderPanelHTML(): string {
 
     return `<div id="${PANEL_ID}">
         <div class="dm-hub-header">
-            <div class="dm-hub-title"><span class="dm-hub-mark">DM</span> Discordmaxxer</div>
+            <div class="dm-hub-title"><span class="dm-hub-mark" title="Discordmaxxer — Discord, optimized">${HUB_LOGO_SVG}</span> Discordmaxxer</div>
             <button class="dm-hub-close" data-action="close" title="Close">×</button>
         </div>
         <div class="dm-hub-tier ${tierClass}">${tierLabel}</div>

@@ -114,10 +114,70 @@
         #submit:hover {
             box-shadow: 0 0 24px var(--border-glow);
         }
+
+        .dm-launch-mark {
+            width: 88px;
+            height: 88px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #f37bff 0%, #e25bff 35%, #7d51f7 70%, #4c51f7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.6em;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.2) inset, 0 8px 24px rgba(226,91,255,0.4);
+        }
+        .dm-launch-mark::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 55%);
+            pointer-events: none;
+        }
+        .dm-launch-mark svg {
+            width: 56px; height: 56px;
+            filter: drop-shadow(0 3px 6px rgba(26,0,40,0.4));
+            position: relative; z-index: 1;
+        }
+
+        /* Random launch effects (matched to splash.html) */
+        .effect-pulse .dm-launch-mark { animation: dml-pulse 1.6s ease-in-out infinite; }
+        @keyframes dml-pulse {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.04); box-shadow: 0 0 0 1px rgba(255,255,255,0.3) inset, 0 12px 32px rgba(226,91,255,0.55); }
+        }
+        .effect-gradient .dm-launch-mark { background-size: 200% 200%; animation: dml-grad 3s ease-in-out infinite; }
+        @keyframes dml-grad {
+            0%, 100% { background-position: 0% 0%; }
+            50%      { background-position: 100% 100%; }
+        }
+        .effect-spin .dm-launch-mark svg {
+            animation: dml-spin-in 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) 0s 1, dml-spin-loop 10s linear 0.7s infinite;
+        }
+        @keyframes dml-spin-in { 0% { transform: rotate(-180deg) scale(0.5); opacity: 0; } 100% { transform: rotate(0) scale(1); opacity: 1; } }
+        @keyframes dml-spin-loop { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+        .effect-flash .dm-launch-mark { animation: dml-flash 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) 0s 1 forwards; }
+        @keyframes dml-flash {
+            0%   { opacity: 0; transform: scale(0.3); }
+            60%  { opacity: 1; transform: scale(1.12); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .effect-chidori .dm-launch-mark { animation: dml-chidori 1.6s ease-in-out infinite; }
+        @keyframes dml-chidori {
+            0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.2) inset, 0 0 16px rgba(76,81,247,0.5); }
+            50%      { box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset, 0 0 48px rgba(76,81,247,1), 0 0 80px rgba(226,91,255,0.6); }
+        }
     </style>
 </head>
 
-<body>
+<body id="launch-body">
+    <div class="dm-launch-mark">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 5 L8 13 L11.5 13 L9.5 19 L16 11 L12.5 11 Z" fill="#ffffff" stroke="#fbe8ff" stroke-width="0.3"/>
+        </svg>
+    </div>
     <h1>Welcome to Discordmaxxer</h1>
     <p>Discord, optimized. Let's set up the basics.</p>
 
@@ -178,6 +238,10 @@
 </body>
 
 <script>
+    const EFFECTS = ["pulse", "gradient", "spin", "flash", "chidori"];
+    const pick = EFFECTS[Math.floor(Math.random() * EFFECTS.length)];
+    document.getElementById("launch-body").classList.add("effect-" + pick);
+
     cancel.onclick = () => console.info("cancel");
     submit.onclick = e => {
         const form = document.querySelector("form");

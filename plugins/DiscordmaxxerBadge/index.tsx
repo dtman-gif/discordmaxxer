@@ -20,15 +20,19 @@ import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { RestAPI, Toasts, UserStore } from "@webpack/common";
 
+// Profile-badge mark — simplified lightning-bolt version of build/icon.svg.
+// Same brand gradient, no text, optimized for 24x24 rendering in user popouts.
 const BADGE_ICON =
     "data:image/svg+xml;charset=utf-8," +
     encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">` +
-        `<defs><linearGradient id="dmg" x1="0" y1="0" x2="1" y2="1">` +
-        `<stop offset="0" stop-color="#e25bff"/><stop offset="1" stop-color="#4c51f7"/>` +
+        `<defs><linearGradient id="dmg" x1="0%" y1="0%" x2="100%" y2="100%">` +
+        `<stop offset="0%" stop-color="#f37bff"/>` +
+        `<stop offset="50%" stop-color="#a256fb"/>` +
+        `<stop offset="100%" stop-color="#4c51f7"/>` +
         `</linearGradient></defs>` +
         `<rect width="24" height="24" rx="5" fill="url(#dmg)"/>` +
-        `<text x="12" y="16" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif" font-size="11" font-weight="bold" fill="#fbefff">DM</text>` +
+        `<path d="M14 5 L8 13 L11.5 13 L9.5 19 L16 11 L12.5 11 Z" fill="#ffffff" stroke="#fbe8ff" stroke-width="0.3"/>` +
         `</svg>`
     );
 

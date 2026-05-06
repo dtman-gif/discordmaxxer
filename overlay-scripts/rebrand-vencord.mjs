@@ -75,9 +75,94 @@ const PATCHES = [
         replace: 'className="dm-vip-button"'
     },
 
-    // ── D. Tab nav rename: "Vencord" entries → Discordmaxxer-flavored ──
-    // The plugins/themes tabs are named neutrally, but the SettingsRouter
-    // shows a header. Patch if needed.
+    // ── D. Settings sidebar: rename "Vencord" link + "Vencord Settings" header ──
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: 'title: "Vencord",\n                panelTitle: "Vencord Settings",',
+        replace: 'title: "Discordmaxxer",\n                panelTitle: "Discordmaxxer",'
+    },
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: 'panelTitle: "Vencord Updater",',
+        replace: 'panelTitle: "Updates",'
+    },
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: 'panelTitle: "Vencord Cloud",',
+        replace: 'panelTitle: "Cloud Sync",'
+    },
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: 'useTitle: () => "Vencord Settings",',
+        replace: 'useTitle: () => "Discordmaxxer",'
+    },
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: 'description: "Where to put the Vencord settings section",',
+        replace: 'description: "Where to put the Discordmaxxer settings section",'
+    },
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: "Also copy Vencord info (Vencord, Electron, Chromium)",
+        replace: "Also copy Discordmaxxer info (Vencord engine, Electron, Chromium)"
+    },
+
+    // ── E. Strip the pink background + fox image + heart icon from the VIP card ──
+    // The SpecialCard backgroundColor was pink (#c3a3ce); replace with our brand
+    // gradient color. The cardImage was a Vencord fox sticker; remove via empty
+    // string. The Heart import in DonateButton drives the heart icon — drop it.
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'cardImage={donateImage}',
+        replace: 'cardImage=""'
+    },
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'cardImage={VENNIE_DONATOR_IMAGE}',
+        replace: 'cardImage=""'
+    },
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'cardImage={COZY_CONTRIB_IMAGE}',
+        replace: 'cardImage=""'
+    },
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'backgroundImage={DONOR_BACKGROUND_IMAGE}',
+        replace: 'backgroundImage=""'
+    },
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'backgroundImage={CONTRIB_BACKGROUND_IMAGE}',
+        replace: 'backgroundImage=""'
+    },
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'backgroundColor="#c3a3ce"',
+        replace: 'backgroundColor="#1a0e2e"'
+    },
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'backgroundColor="#ED87A9"',
+        replace: 'backgroundColor="#1a3a1a"'
+    },
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find: 'backgroundColor="#EDCC87"',
+        replace: 'backgroundColor="#3a2e0e"'
+    },
+
+    // ── F. Drop the heart icon from the VIP button ──
+    {
+        file: "src/components/settings/DonateButton.tsx",
+        find: 'import { Heart } from "@components/Heart";\n',
+        replace: ""
+    },
+    {
+        file: "src/components/settings/DonateButton.tsx",
+        find: "<Heart />\n            View VIP",
+        replace: "View VIP"
+    }
 ];
 
 let patched = 0;

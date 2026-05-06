@@ -57,7 +57,10 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "DiscordmaxxerBadge",
     "DiscordmaxxerTheme",
     "VideoBackground",
-    "DiscordmaxxerHub"
+    "DiscordmaxxerHub",
+    "DiscordmaxxerCursor", // disabled-effect by default — user picks skin
+    "DiscordmaxxerPrivacy", // one-shot consent prompt to disable Discord telemetry
+    "DiscordmaxxerTrim" // hides Family Center / Nitro promos / HypeSquad
 ];
 
 const VENCORD_DEFAULTS = {

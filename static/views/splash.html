@@ -38,21 +38,33 @@
             justify-content: center;
         }
 
-        /* Inline DM mark — matches build/icon.svg (kept in sync manually). */
+        /* Inline mark — lightning-bolt version of build/icon.svg. */
         .dm-mark {
             width: 128px;
             height: 128px;
             border-radius: 28px;
-            background: linear-gradient(135deg, #e25bff, #4c51f7);
+            background: linear-gradient(135deg, #f37bff 0%, #e25bff 35%, #7d51f7 70%, #4c51f7 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #fbefff;
-            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-            font-weight: 900;
-            font-size: 56px;
-            letter-spacing: -2px;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 8px 32px rgba(226,91,255,0.35);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.2) inset, 0 8px 32px rgba(226,91,255,0.35);
+            position: relative;
+            overflow: hidden;
+        }
+        .dm-mark::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 55%);
+            pointer-events: none;
+        }
+        .dm-mark svg {
+            width: 78px;
+            height: 78px;
+            filter: drop-shadow(0 4px 8px rgba(26,0,40,0.4));
+            position: relative;
+            z-index: 1;
         }
 
         .ripple {
@@ -157,7 +169,11 @@
             <div class="ripple"></div>
             <div class="ripple"></div>
             <div class="ripple"></div>
-            <div class="dm-mark">DM</div>
+            <div class="dm-mark">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 5 L8 13 L11.5 13 L9.5 19 L16 11 L12.5 11 Z" fill="#ffffff" stroke="#fbe8ff" stroke-width="0.3"/>
+                </svg>
+            </div>
         </div>
         <p>Loading Discordmaxxer...</p>
         <p class="message"></p>
