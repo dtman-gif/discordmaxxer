@@ -161,6 +161,18 @@ const HUB_CSS = `
     }
     .dm-hub-toggle.on::after { left: 18px; }
     .dm-hub-toggle.locked { opacity: 0.4; cursor: not-allowed; }
+    .dm-hub-action-btn {
+        background: linear-gradient(135deg, rgba(226,91,255,0.25), rgba(76,81,247,0.25));
+        color: #fbefff;
+        border: 1px solid rgba(226,91,255,0.45);
+        border-radius: 4px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: filter 0.12s;
+    }
+    .dm-hub-action-btn:hover { filter: brightness(1.2); }
     .dm-hub-info {
         font-size: 11px;
         color: #ddb1ff;
@@ -284,6 +296,12 @@ function renderPanelHTML(): string {
             : `<div class="dm-hub-info">Welcome back, ${tierLabel}.</div>`}
         <div class="dm-hub-section">Quick toggles</div>
         ${rows}
+        <div class="dm-hub-section">Maintenance</div>
+        <div class="dm-hub-row">
+            <div class="dm-hub-row-label">♻️ Reload Discord (frees RAM)</div>
+            <button class="dm-hub-action-btn" data-action="reload-renderer">Reload</button>
+        </div>
+        <div class="dm-hub-info">Use this if Discord starts feeling sluggish after hours of uptime. Login state survives.</div>
         <div class="dm-hub-footer">Full settings → Discord settings → Vencord → Plugins</div>
     </div>`;
 }
@@ -299,6 +317,11 @@ function ensurePanelRoot() {
         const t = e.target as HTMLElement;
         if (t.dataset.action === "close") {
             panelRoot!.classList.add("hidden");
+            return;
+        }
+        if (t.dataset.action === "reload-renderer") {
+            panelRoot!.classList.add("hidden");
+            location.reload();
             return;
         }
         if (t.classList.contains("dm-hub-toggle") && !t.dataset.locked) {

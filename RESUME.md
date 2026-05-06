@@ -6,7 +6,35 @@
 
 `v0.1.0` — full plugin set, validated end-to-end on live Discord 2026-05-06
 
-## Last session — 2026-05-06
+## Last session — 2026-05-06 (evening — perf + telemetry pass)
+
+**TournamentMode v3 — refactored from cosmetic to actual-performance.** Driven by Diggy's principle: only strip things that affect latency / CPU / GPU / RAM. Cosmetic stuff stays on so users can leave TM on permanently without losing their plugins.
+
+What TM does now:
+- **Process priority** drops to BELOW_NORMAL via `os.setPriority(0, 10)` in main process — game gets CPU scheduling priority
+- **Renderer frame rate** caps at 30 fps via `webContents.setFrameRate(30)` — halves compositor GPU load
+- **arRPC worker terminates** — frees a worker thread + IPC server + game-process polling. Patched `src/main/arrpc/index.ts` to actually call `worker.terminate()` on settings flip-off (upstream listener only ever started the worker, never stopped it)
+- **CSS pauses 4 animation classes** that decode/animate every frame: animated emoji, animated avatars, typing-dots, voice-activity ring
+
+What TM stops doing (intentionally — these were cosmetic, not perf):
+- Strip ALL CSS animations / transitions / hover effects
+- Hide unread badges / mention counts / typing indicators wholesale
+
+Telemetry/CPU defaults added to seeder (default-on for new installs):
+- `NoTrack` — disables `/science` + `/tracking` analytics endpoints
+- `BlockKrispWeb` — blocks Discord-funded Krisp.ai noise-cancel from loading (CPU + privacy)
+- `DisableCallIdle` — stops 5-min auto-voice-disconnect (saves a heartbeat round-trip on idle voice)
+
+RAM mitigation:
+- Hub panel adds a "♻️ Reload Discord (frees RAM)" button under a new Maintenance section. Click → `location.reload()`. Login state survives. Use when sluggish after hours of uptime.
+
+CPU validation:
+- New `overlay-scripts/bench-cpu.mjs` — polls Get-Process for Discordmaxxer + Discord process trees, dumps per-tick CSV. Run side-by-side with stock Discord at parity workload to see the cycle delta.
+- Methodology + caveats documented in the script header.
+
+New IPC: `DM_SET_PERFORMANCE_MODE`. New main module: `src/main/discordmaxxerPerf.ts`. New preload binding: `VesktopNative.performanceMode.set(boolean)`.
+
+## Earlier 2026-05-06 — full-suite validation pass
 
 Full-suite validation pass via puppeteer-driven CDP runner. All 7 custom plugins + VIP tier system + 22 spot-checked Vencord defaults verified. Live Discord profile mutations (custom status, bio, pronouns) confirmed by re-fetch. See `overlay-scripts/reports/validate-1778101083109.json` for the structured pass report.
 

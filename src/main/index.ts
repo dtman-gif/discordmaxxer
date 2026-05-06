@@ -8,6 +8,7 @@ import "./cli";
 import "./updater";
 import "./ipc";
 import "./discordmaxxerHotkeys";
+import "./discordmaxxerPerf";
 import "./userAssets";
 import "./vesktopProtocol";
 

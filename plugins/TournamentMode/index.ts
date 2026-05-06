@@ -3,12 +3,38 @@
  * Copyright (c) 2026 Diggy
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Toggleable low-distraction mode for competitive gaming. Kills animations,
- * hides unread badges, mutes visual noise. Hotkey-driven.
+ * Performance mode for competitive gaming. ONLY strips things that cost CPU,
+ * GPU, or RAM — not cosmetic stuff. Designed to be safe to leave on
+ * permanently: you keep your fancy plugins, you just stop wasting cycles
+ * Discord doesn't need while a game is running.
  *
- * v2: OS-level global hotkey (default-on) via Discordmaxxer's globalShortcut
- * bridge. Falls back to window-focused keydown if global registration fails
- * or is disabled in settings.
+ * What it does:
+ *   System (via VesktopNative.performanceMode bridge):
+ *     1. Lower process priority to BELOW_NORMAL — game gets scheduling
+ *        priority over Discord
+ *     2. Cap renderer frame rate at 30 fps (down from 60) — half the
+ *        compositor work, GPU freed for the game
+ *     3. Terminate the arRPC Rich Presence worker — saves a worker thread
+ *        + IPC pipe + game-process polling
+ *
+ *   Renderer CSS — pause animations that decode every frame:
+ *     4. Animated emoji (.gif/.apng decoding loop)
+ *     5. Animated avatars (Nitro)
+ *     6. Typing-dots (.... animation, runs constantly while anyone types)
+ *     7. Voice-activity speaking ring (pulses while anyone is talking)
+ *
+ * What it does NOT do (intentionally):
+ *   - Strip CSS transitions / hover effects (GPU compositor handles them
+ *     basically for free)
+ *   - Hide unread badges / mention counts (cosmetic, no perf cost)
+ *   - Pause non-critical Vencord plugins (most are event-driven, near-zero
+ *     idle cost)
+ *   - Disable hardware acceleration (would shift load from GPU to CPU,
+ *     usually a net loss)
+ *
+ * v3 — 2026-05-06: Refactored from "kill all animations + hide badges"
+ * (cosmetic visual-distraction-killer) to system-level perf mode. Aligns
+ * with the "always-on-friendly" principle.
  */
 
 import { definePluginSettings } from "@api/Settings";
@@ -24,23 +50,30 @@ let active = false;
 let hotkeyHandler: ((e: KeyboardEvent) => void) | null = null;
 let globalRegistered = false;
 
-const TOURNAMENT_CSS = `
-    /* Discordmaxxer TournamentMode */
-    *, *::before, *::after {
-        animation-duration: 0s !important;
-        animation-delay: 0s !important;
-        transition-duration: 0s !important;
-        transition-delay: 0s !important;
-    }
-    [class*="unread"] [class*="badge"],
-    [class*="numberBadge"],
-    [class*="mentionsCountBadge"],
-    [class*="typing-"] {
-        display: none !important;
-    }
+// CPU-saving CSS only. Pauses (not hides) animations that decode/run every
+// frame. Cosmetic elements stay fully visible.
+const PERF_CSS = `
+    /* Animated emoji — gif/apng decoding loop is a real CPU cost */
     [class*="emoji"] img,
-    [class*="emoji"] video {
+    [class*="emoji"] video,
+    img[src*=".gif"],
+    img[src*="format=gif"] {
         animation-play-state: paused !important;
+    }
+    /* Animated avatars (Nitro) — same loop */
+    [class*="avatar"] img[src*=".gif"],
+    [class*="avatar"] video {
+        animation-play-state: paused !important;
+    }
+    /* "is typing" 3-dot animation — runs constantly when anyone is typing */
+    [class*="typing-"] [class*="dots-"],
+    [class*="typing-"] svg {
+        animation: none !important;
+    }
+    /* Voice-activity speaking ring — pulses while anyone is talking in voice */
+    [class*="speakingIndicator"],
+    [class*="speaking-"] {
+        animation: none !important;
     }
 `;
 
@@ -57,8 +90,23 @@ const settings = definePluginSettings({
     },
     enabledOnStart: {
         type: OptionType.BOOLEAN,
-        description: "Enable Tournament Mode automatically on Discord launch",
+        description: "Enable Tournament Mode automatically on Discord launch. Safe to leave on — TM only strips real-cost stuff (CPU/GPU/RAM), not cosmetic plugins.",
         default: false
+    },
+    lowerProcessPriority: {
+        type: OptionType.BOOLEAN,
+        description: "Lower Discord's process priority to BELOW_NORMAL while TM is on. Frees CPU scheduling slots for your game. Recommended ON.",
+        default: true
+    },
+    capFrameRate: {
+        type: OptionType.BOOLEAN,
+        description: "Cap renderer frame rate at 30 fps while TM is on (default 60). Halves compositor GPU load. Recommended ON.",
+        default: true
+    },
+    disableArRpc: {
+        type: OptionType.BOOLEAN,
+        description: "Terminate Rich Presence worker (arRPC) while TM is on. Disables 'Now Playing' detection. Set OFF if you want streamers/friends to see your game.",
+        default: true
     }
 });
 
@@ -79,32 +127,43 @@ function parseHotkey(hk: string): ParsedHotkey {
     };
 }
 
-function setActive(next: boolean) {
+async function setActive(next: boolean) {
     active = next;
-    if (style) style.textContent = active ? TOURNAMENT_CSS : "";
-    console.log(`[TournamentMode] ${active ? "ACTIVE" : "off"}`);
+    if (style) style.textContent = active ? PERF_CSS : "";
+
+    // System-level perf mode bridge
+    const native = (globalThis as any).VesktopNative;
+    let result: any = null;
+    if (native?.performanceMode?.set) {
+        try {
+            result = await native.performanceMode.set(active);
+        } catch (e) {
+            console.warn("[TournamentMode] performanceMode bridge failed:", e);
+        }
+    }
+
+    console.log(`[TournamentMode] ${active ? "ACTIVE" : "off"}`, result);
 
     Toasts.show({
-        message: active ? "🎮 Tournament Mode: ON" : "Tournament Mode: OFF",
+        message: active
+            ? `🎮 Tournament Mode: ON — priority↓ fps→30 ${result?.arRpcDisabled ? "rpc✕" : ""}`
+            : "Tournament Mode: OFF — restored",
         type: active ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE,
         id: Toasts.genId(),
-        options: {
-            duration: 1500,
-            position: Toasts.Position.TOP
-        }
+        options: { duration: 1800, position: Toasts.Position.TOP }
     });
 }
 
 export default definePlugin({
     name: "TournamentMode",
-    description: "Press Ctrl+Alt+T (configurable below) to TOGGLE a low-distraction mode for competitive gaming — kills animations, hides badges. The toggle here just enables the hotkey listener; the mode itself activates when you press the hotkey. Toast shows current state.",
+    description: "Press Ctrl+Alt+T (configurable) to toggle a real performance mode for gaming: drops Discord's process priority, caps the renderer at 30 fps, kills Rich Presence, and pauses animated emoji/avatars/typing-dots. Safe to leave on permanently — only strips things with measurable CPU/GPU cost; cosmetic plugins stay fully active.",
     authors: [{ name: "Diggy", id: 0n }],
     settings,
 
     async start() {
         style = createAndAppendStyle("dm-tournament-mode", managedStyleRootNode);
 
-        if (settings.store.enabledOnStart) setActive(true);
+        if (settings.store.enabledOnStart) await setActive(true);
 
         const native = (globalThis as any).VesktopNative;
         const wantGlobal = settings.store.useGlobalHotkey && native?.globalHotkey?.register;
@@ -117,7 +176,7 @@ export default definePlugin({
                 if (ok) {
                     globalRegistered = true;
                     console.log("[TournamentMode] OS-level hotkey registered");
-                    return; // skip window-focused fallback
+                    return;
                 }
                 console.warn("[TournamentMode] OS-level register failed (likely conflict) — falling back to window-focused");
             } catch (e) {
@@ -125,7 +184,6 @@ export default definePlugin({
             }
         }
 
-        // Fallback: window-focused listener (works only when Discord has focus).
         const hk = parseHotkey(settings.store.hotkey);
         hotkeyHandler = (e: KeyboardEvent) => {
             if (
@@ -142,7 +200,11 @@ export default definePlugin({
         window.addEventListener("keydown", hotkeyHandler, true);
     },
 
-    stop() {
+    async stop() {
+        if (active) {
+            // Restore system state before unloading
+            await setActive(false);
+        }
         if (globalRegistered) {
             (globalThis as any).VesktopNative?.globalHotkey?.unregister?.(HOTKEY_ID);
             globalRegistered = false;

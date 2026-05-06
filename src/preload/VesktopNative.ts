@@ -123,5 +123,8 @@ export const VesktopNative = {
             globalHotkeyHandlers.delete(id);
             return invoke<boolean>(IpcEvents.DM_UNREGISTER_GLOBAL_HOTKEY, id);
         }
+    },
+    performanceMode: {
+        set: (on: boolean) => invoke<{ priorityChanged: boolean; frameRateLimited: boolean; arRpcDisabled: boolean }>(IpcEvents.DM_SET_PERFORMANCE_MODE, on)
     }
 };

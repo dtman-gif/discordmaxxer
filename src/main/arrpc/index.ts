@@ -12,9 +12,27 @@ import { sendRendererCommand } from "../ipcCommands";
 import { Settings } from "../settings";
 import { ArRpcEvent, ArRpcHostEvent } from "./types";
 
-let worker: Worker;
+let worker: Worker | undefined;
 
 const inviteCodeRegex = /^(\w|-)+$/;
+
+// Discordmaxxer addition: actually terminate the worker when the setting flips
+// off. Upstream Vesktop's listener only ever called initArRPC, which bails
+// when worker is already running — so toggling off didn't free anything.
+async function teardownArRPC() {
+    if (!worker) return;
+    try {
+        await worker.terminate();
+    } catch (e) {
+        console.warn("Failed to terminate arRPC worker", e);
+    }
+    worker = undefined;
+}
+
+async function syncArRPCToSettings() {
+    if (Settings.store.arRPC) await initArRPC();
+    else await teardownArRPC();
+}
 
 export async function initArRPC() {
     if (worker || !Settings.store.arRPC) return;
@@ -74,4 +92,4 @@ export async function initArRPC() {
     }
 }
 
-Settings.addChangeListener("arRPC", initArRPC);
+Settings.addChangeListener("arRPC", syncArRPCToSettings);

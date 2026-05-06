@@ -94,7 +94,7 @@ Each maps to a feature Diggy specifically asked for:
 
 ### Custom plugins (we build)
 
-1. **TournamentMode** — toggle button + global hotkey. When on: kills animations, disables RPC, throttles background webview FPS, pauses non-critical plugins, lowers voice processing, hides unread badges. ~250 LoC, 1 day.
+1. **TournamentMode** — toggle button + global hotkey. **Performance-only, always-on-friendly.** When on: lowers Discord's process priority to BELOW_NORMAL (game gets CPU scheduling), caps renderer at 30 fps (halves compositor GPU load), terminates the arRPC Rich Presence worker, and pauses real-cost CSS animations (animated emoji decoding loop, animated avatars, typing-dots, voice-activity ring). Does NOT strip cosmetic stuff (transitions, badges, hover effects) — those don't add lag, so they stay on. v3 — 2026-05-06.
 
 2. **CompactView** — hotkey-toggle hide of server list, channels, and member list. Auto-hide-on-screenshare option. Targets vertical-monitor screenshare users. ~120 LoC, 0.5 day.
 
