@@ -3,11 +3,18 @@
  * Copyright (c) 2026 Diggy
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Light-touch theme that paints Discord's brand accents with the maxxer-suite
- * palette (electric magenta + Fortnite blue). Designed to be safe — no layout
- * changes, no aggressive selectors. If something breaks, toggle it off.
+ * Multi-theme system. Five named palettes covering Discord's full
+ * CSS-variable graph (brand, background, text, header, channels,
+ * interactive, scrollbar). Switch via the `selected` setting.
  *
- * Off by default so users can opt in.
+ * Themes:
+ *   - maxxer (default): magenta + cobalt
+ *   - val: Valorant red + cream
+ *   - sonic: gold + cobalt
+ *   - dmc: blood red + bone (gothic, serif headings)
+ *   - bo3: Black Ops 3 olive + neon orange
+ *
+ * Off by default — opt-in via plugin toggle.
  */
 
 import { definePluginSettings } from "@api/Settings";
@@ -15,114 +22,55 @@ import { managedStyleRootNode } from "@api/Styles";
 import { createAndAppendStyle } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
 
+import { DEFAULT_THEME, THEME_ORDER, themeCss, THEMES, ThemeId } from "../_dm-shared/themes";
+
 let style: HTMLStyleElement;
+let appliedBodyClass: string | null = null;
 
-// Discord uses TWO brand-color systems simultaneously:
-//   * --brand-experiment-* (legacy, hex values)
-//   * --brand-* (modern, HSL-based — drives most of the live chrome)
-// We override BOTH so the magenta actually shows up.
-const THEME_CSS = `
-    :root {
-        /* Legacy brand-experiment system */
-        --brand-experiment: #e25bff;
-        --brand-experiment-100: #ffe6ff;
-        --brand-experiment-200: #fcc6ff;
-        --brand-experiment-300: #f5a3ff;
-        --brand-experiment-400: #ec80ff;
-        --brand-experiment-500: #e25bff;
-        --brand-experiment-560: #d033ee;
-        --brand-experiment-600: #b81bd6;
-        --brand-experiment-700: #8a14a3;
-        --brand-experiment-800: #5a0d6b;
-        --brand-experiment-900: #2c0635;
-        --brand-experiment-05a: rgba(226, 91, 255, 0.05);
-        --brand-experiment-10a: rgba(226, 91, 255, 0.1);
-        --brand-experiment-15a: rgba(226, 91, 255, 0.15);
-        --brand-experiment-20a: rgba(226, 91, 255, 0.2);
-        --brand-experiment-25a: rgba(226, 91, 255, 0.25);
-        --brand-experiment-30a: rgba(226, 91, 255, 0.3);
-        --brand-experiment-35a: rgba(226, 91, 255, 0.35);
-        --brand-experiment-40a: rgba(226, 91, 255, 0.4);
-        --brand-experiment-50a: rgba(226, 91, 255, 0.5);
-        --brand-experiment-60a: rgba(226, 91, 255, 0.6);
-        --brand-experiment-70a: rgba(226, 91, 255, 0.7);
-        --brand-experiment-80a: rgba(226, 91, 255, 0.8);
-        --brand-experiment-90a: rgba(226, 91, 255, 0.9);
+function applyTheme(id: ThemeId) {
+    const theme = THEMES[id] ?? THEMES[DEFAULT_THEME];
 
-        /* Modern brand-* system (HSL-based) — the one that drives buttons,
-           mentions, online indicators, channel-selected state, etc. */
-        --brand-100: #ffe6ff;
-        --brand-200: #fcc6ff;
-        --brand-300: #f5a3ff;
-        --brand-400: #ec80ff;
-        --brand-500: #e25bff;
-        --brand-560: #d033ee;
-        --brand-600: #b81bd6;
-        --brand-700: #8a14a3;
-        --brand-800: #5a0d6b;
-        --brand-900: #2c0635;
+    if (style) style.textContent = themeCss(theme);
 
-        /* High-traffic semantic vars Discord uses for hover/border accents */
-        --button-filled-brand-background: #e25bff;
-        --button-filled-brand-background-hover: #d033ee;
-        --button-filled-brand-background-active: #b81bd6;
-        --button-outline-brand-text: #e25bff;
-        --button-outline-brand-border: #e25bff;
+    // Body-class swap so per-theme component overrides can scope cleanly
+    if (appliedBodyClass) document.body.classList.remove(appliedBodyClass);
+    document.body.classList.add(theme.bodyClass);
+    appliedBodyClass = theme.bodyClass;
 
-        /* Interactive/active state — selected channel pill, link hover, etc. */
-        --interactive-active: #fbefff;
-        --info-help-foreground: #e25bff;
-        --status-positive-foreground: #10b981;
-        --header-primary: #fbefff;
-
-        /* Make selected channel state visibly magenta */
-        --channels-default: #ddb1ff;
-
-        /* Mention/reply highlight backgrounds */
-        --mention-foreground: #fbefff;
-    }
-
-    /* Selected channel in the sidebar gets a magenta accent bar */
-    [class*="modeSelected"] {
-        background: rgba(226, 91, 255, 0.18) !important;
-    }
-    [class*="modeSelected"]::before {
-        background-color: #e25bff !important;
-    }
-
-    /* @ mention chips in chat — make them magenta-tinted */
-    [class*="mention"][class*="wrapper"] {
-        background-color: rgba(226, 91, 255, 0.2) !important;
-        color: #ffd6ff !important;
-    }
-`;
+    console.log(`[DiscordmaxxerTheme] applied theme=${id}`);
+}
 
 const settings = definePluginSettings({
-    enable: {
-        type: OptionType.BOOLEAN,
-        description:
-            "Apply maxxer-suite palette to Discord's brand accent colors. Touches the --brand-experiment CSS vars only — safe, but if you see something weird, turn it off.",
-        default: false,
-        onChange: (value: boolean) => {
-            if (style) style.textContent = value ? THEME_CSS : "";
-        }
+    selected: {
+        type: OptionType.SELECT,
+        description: "Theme palette — covers Discord's full color graph (background, text, brand, channels, scrollbars).",
+        default: DEFAULT_THEME,
+        options: THEME_ORDER.map(id => ({
+            label: `${THEMES[id].label} — ${THEMES[id].blurb}`,
+            value: id,
+            default: id === DEFAULT_THEME
+        })),
+        onChange: (value: ThemeId) => applyTheme(value)
     }
 });
 
 export default definePlugin({
     name: "DiscordmaxxerTheme",
     description:
-        "Repaints Discord's brand-color accents (the 'blurple') with the maxxer-suite magenta. " +
-        "Off by default — flip the toggle in settings to apply. Safe: only overrides --brand-experiment* CSS vars.",
+        "Multi-theme system. Switch between Maxxer (magenta+cobalt), Val (Valorant), Sonic (gold+cobalt), DMC (gothic blood-red), or BO3 (Black Ops 3 military). Each theme overrides Discord's full color graph — backgrounds, text, brand accents, channel list, scrollbars. Toggle off to restore Discord defaults.",
     authors: [{ name: "Diggy", id: 0n }],
     settings,
 
     start() {
         style = createAndAppendStyle("dm-theme", managedStyleRootNode);
-        if (settings.store.enable) style.textContent = THEME_CSS;
+        applyTheme(settings.store.selected as ThemeId);
     },
 
     stop() {
         style?.remove();
+        if (appliedBodyClass) {
+            document.body.classList.remove(appliedBodyClass);
+            appliedBodyClass = null;
+        }
     }
 });

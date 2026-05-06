@@ -16,6 +16,7 @@ import { managedStyleRootNode } from "@api/Styles";
 import { createAndAppendStyle } from "@utils/css";
 import definePlugin from "@utils/types";
 
+import { playSound, soundsEnabled } from "../_dm-shared/sounds";
 import { getMyTier, hasTier, Tier, TIER_LABELS } from "../_dm-shared/vip";
 
 const FAB_ID = "dm-hub-fab";
@@ -331,6 +332,7 @@ function ensurePanelRoot() {
     panelRoot.addEventListener("click", (e: any) => {
         const t = e.target as HTMLElement;
         if (t.dataset.action === "close") {
+            if (soundsEnabled()) playSound("click");
             panelRoot!.classList.add("hidden");
             return;
         }
@@ -340,6 +342,7 @@ function ensurePanelRoot() {
             return;
         }
         if (t.classList.contains("dm-hub-toggle") && !t.dataset.locked) {
+            if (soundsEnabled()) playSound("toggle");
             const plugin = t.dataset.plugin!;
             const key = t.dataset.key!;
             const next = !getSetting(plugin, key);
@@ -378,6 +381,7 @@ function injectButton() {
     fab.addEventListener("click", e => {
         e.preventDefault();
         e.stopPropagation();
+        if (soundsEnabled()) playSound("click");
         togglePanel();
     });
 
