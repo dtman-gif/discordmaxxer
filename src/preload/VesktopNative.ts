@@ -26,6 +26,12 @@ let onDevtoolsClose = () => {};
 ipcRenderer.on(IpcEvents.DEVTOOLS_OPENED, () => onDevtoolsOpen());
 ipcRenderer.on(IpcEvents.DEVTOOLS_CLOSED, () => onDevtoolsClose());
 
+// Discordmaxxer global hotkey bridge — supports multiple registrations keyed by id.
+const globalHotkeyHandlers = new Map<string, () => void>();
+ipcRenderer.on(IpcEvents.DM_GLOBAL_HOTKEY_FIRED, (_e, id: string) => {
+    globalHotkeyHandlers.get(id)?.();
+});
+
 export const VesktopNative = {
     app: {
         relaunch: () => invoke<void>(IpcEvents.RELAUNCH),
@@ -107,5 +113,15 @@ export const VesktopNative = {
             ipcRenderer.on(IpcEvents.IPC_COMMAND, (_, message) => cb(message));
         },
         respond: (response: IpcResponse) => ipcRenderer.send(IpcEvents.IPC_COMMAND, response)
+    },
+    globalHotkey: {
+        register: (id: string, hotkey: string, onFire: () => void) => {
+            globalHotkeyHandlers.set(id, onFire);
+            return invoke<boolean>(IpcEvents.DM_REGISTER_GLOBAL_HOTKEY, id, hotkey);
+        },
+        unregister: (id: string) => {
+            globalHotkeyHandlers.delete(id);
+            return invoke<boolean>(IpcEvents.DM_UNREGISTER_GLOBAL_HOTKEY, id);
+        }
     }
 };

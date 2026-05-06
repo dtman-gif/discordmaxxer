@@ -42,11 +42,11 @@ body {
     }
 
     #current-version {
-        color: #fc8f8a;
+        color: var(--accent-warning);
     }
 
     #new-version {
-        color: #71c07f;
+        color: var(--accent-success);
     }
 }
 
@@ -78,11 +78,23 @@ button:active {
 }
 
 .green {
-    background-color: #248046;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border: 1px solid var(--accent-primary);
+}
+
+.green:hover {
+    box-shadow: 0 0 20px var(--border-glow);
+    filter: none;
 }
 
 .grey {
-    background-color: rgba(151, 151, 159, 0.12);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+.grey:hover {
+    background-color: var(--bg-card-hover);
+    filter: none;
 }
 
 .hidden {

@@ -2,7 +2,7 @@
 <meta charset="utf-8" />
 
 <head>
-    <title>Vesktop Setup</title>
+    <title>Discordmaxxer Setup</title>
 
     <link rel="stylesheet" href="./common.css" type="text/css" />
 
@@ -89,27 +89,36 @@
         }
 
         button {
-            padding: 0.6em;
-            background: red;
-            color: white;
-            border-radius: 6px;
-            border: none;
+            padding: 0.6em 1.2em;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
             cursor: pointer;
-            transition: 200ms filter;
+            transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
         }
 
         button:hover {
-            filter: brightness(0.8);
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-glow);
         }
 
         #submit {
-            background: green;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        #submit:hover {
+            box-shadow: 0 0 24px var(--border-glow);
         }
     </style>
 </head>
 
 <body>
-    <h1>Welcome to Vesktop</h1>
+    <h1>Welcome to Discordmaxxer 🐍</h1>
     <p>Let's customise your experience!</p>
 
     <form>
@@ -125,7 +134,7 @@
         <label>
             <div>
                 <h2>Start with System</h2>
-                <span>Automatically open Vesktop when your computer starts</span>
+                <span>Automatically open Discordmaxxer when your computer starts</span>
             </div>
             <input type="checkbox" name="autoStart" />
         </label>

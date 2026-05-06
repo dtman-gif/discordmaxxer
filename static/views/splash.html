@@ -27,8 +27,15 @@
             justify-content: center;
             align-items: center;
             border-radius: 8px;
-            border: 1px solid var(--fg-semi-trans);
-            background: var(--bg);
+            border: 1px solid var(--border-glow);
+            background: linear-gradient(135deg, var(--bg-primary), var(--bg-tertiary));
+            box-shadow: var(--shadow-glow);
+        }
+
+        .wrapper p:first-of-type {
+            color: var(--accent-primary);
+            font-weight: 600;
+            text-shadow: 0 0 10px var(--border-glow);
         }
 
         .message {
@@ -36,7 +43,8 @@
             word-break: break-word;
             padding: 0 16px;
             position: absolute;
-            font-size: 14px
+            font-size: 14px;
+            color: var(--text-secondary);
         }
 
         p {
@@ -54,7 +62,7 @@
 <body>
     <div class="wrapper">
         <img draggable="false" src="vesktop://assets/splash" alt="" role="presentation" />
-        <p>Loading Vesktop...</p>
+        <p>Loading Discordmaxxer...</p>
         <p class="message"></p>
     </div>
 </body>
