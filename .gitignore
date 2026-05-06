@@ -11,3 +11,8 @@ vencord-dist/
 overlay-scripts/*.log
 overlay-scripts/screenshots/
 overlay-scripts/reports/
+
+# User-supplied screenshots (Diggy drops these in to flag UI issues)
+image.png
+unknown.png
+*.screenshot.png

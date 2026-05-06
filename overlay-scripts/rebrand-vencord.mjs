@@ -152,7 +152,34 @@ const PATCHES = [
         replace: 'backgroundColor="#3a2e0e"'
     },
 
-    // ── F. Drop the heart icon from the VIP button ──
+    // ── G. Updater tab — strip Vencord/Vesktop dual-attribution card + descriptions ──
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: '<HeadingSecondary>Vesktop & Vencord</HeadingSecondary>',
+        replace: '<HeadingSecondary>Discordmaxxer Updates</HeadingSecondary>'
+    },
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: '<Paragraph>Vesktop and Vencord are two separate things. This updater is for Vencord.</Paragraph>',
+        replace: '<Paragraph>This updater keeps your Discordmaxxer plugin engine current.</Paragraph>'
+    },
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: 'You receive separate popups for Vesktop updates. You can also manually update by installing the <Link href="https://vesktop.dev/install">latest version</Link>.',
+        replace: 'App-level updates are handled separately. You can manually update by installing the <Link href="https://discordmaxxer.dev/download">latest version</Link>.'
+    },
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: 'description="Automatically update Vencord without confirmation prompt"',
+        replace: 'description="Automatically update the plugin engine without confirmation prompt"'
+    },
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: 'description="Show a notification when Vencord automatically updates"',
+        replace: 'description="Show a notification when the plugin engine automatically updates"'
+    },
+
+    // ── H. Drop the heart icon from the VIP button ──
     {
         file: "src/components/settings/DonateButton.tsx",
         find: 'import { Heart } from "@components/Heart";\n',
