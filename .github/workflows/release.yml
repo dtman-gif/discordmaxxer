@@ -1,5 +1,9 @@
 name: Release
 
+# v0.1 = Windows-only per CLAUDE.md ("Mac/Linux defer to v0.2"). The previous
+# matrix entries for macos-latest + ubuntu-latest are preserved in git history
+# (revert this commit to restore them) and should come back when v0.2 ships.
+
 on:
     push:
         tags:
@@ -8,18 +12,7 @@ on:
 
 jobs:
     release:
-        runs-on: ${{ matrix.os }}
-
-        strategy:
-            matrix:
-                os: [macos-latest, ubuntu-latest, windows-latest]
-                include:
-                    - os: macos-latest
-                      platform: mac
-                    - os: ubuntu-latest
-                      platform: linux
-                    - os: windows-latest
-                      platform: windows
+        runs-on: windows-latest
 
         steps:
             - uses: actions/checkout@v4
@@ -38,22 +31,6 @@ jobs:
               run: pnpm build
 
             - name: Run Electron Builder
-              if: ${{ matrix.platform != 'mac' }}
-              run: |
-                  pnpm electron-builder --${{ matrix.platform }} --publish always
+              run: pnpm electron-builder --windows --publish always
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: Run Electron Builder
-              if: ${{ matrix.platform == 'mac' }}
-              run: |
-                  echo "$API_KEY" > apple.p8
-                  pnpm electron-builder --${{ matrix.platform }} --publish always
-              env:
-                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                CSC_LINK: ${{ secrets.APPLE_SIGNING_CERT }}
-                CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-                API_KEY: ${{ secrets.APPLE_API_KEY }}
-                APPLE_API_KEY: apple.p8
-                APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-                APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}

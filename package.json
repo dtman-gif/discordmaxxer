@@ -11,6 +11,13 @@
         "electron"
     ],
     "homepage": "https://github.com/diggy/discordmaxxer",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/diggy/discordmaxxer.git"
+    },
+    "bugs": {
+        "url": "https://github.com/diggy/discordmaxxer/issues"
+    },
     "license": "GPL-3.0-or-later",
     "author": "Diggy",
     "contributors": [
@@ -25,6 +32,8 @@
         "buildLibVesktop": "pnpm -C packages/libvesktop install && pnpm -C packages/libvesktop run build",
         "package": "pnpm build && electron-builder",
         "package:dir": "pnpm build && electron-builder --dir",
+        "package:win": "pnpm build && electron-builder --windows",
+        "regen-icons": "node scripts/build/regenIcons.mjs",
         "lint": "eslint",
         "lint:fix": "pnpm lint --fix",
         "start": "pnpm build && electron .",
@@ -101,7 +110,7 @@
         "linux": {
             "icon": "build/icon.svg",
             "category": "Network",
-            "maintainer": "vendicated+vesktop@riseup.net",
+            "maintainer": "lucidcobra@gmail.com",
             "target": [
                 {
                     "target": "deb",
@@ -209,7 +218,9 @@
             ]
         },
         "publish": {
-            "provider": "github"
+            "provider": "github",
+            "owner": "diggy",
+            "repo": "discordmaxxer"
         },
         "rpm": {
             "fpm": [

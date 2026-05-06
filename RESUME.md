@@ -73,10 +73,14 @@ P1:
 - [x] **VideoBackground** — VIP+ gated full-window video bg (bonus plugin)
 - [x] **VIP tier system** at `plugins/_dm-shared/vip.ts` — 4-tier ladder (FREE/MAXXER/MAXXER+/MAXXER++)
 - [x] **Validation harness** — `overlay-scripts/validate-all.mjs` reusable puppeteer-driven runner
-- [ ] Replace branding assets (logo SVG, icon PNGs, splash image — currently still Vesktop's)
+- [x] Replace branding SVG (`build/icon.svg` rebranded to magenta+blue gradient mark 2026-05-05)
+- [ ] **Regenerate `build/icon.ico` + `icon.icns` from new SVG.** Run `pnpm add -D sharp png-to-ico && pnpm regen-icons`. Until done, installer + tray + .exe icon are still Vesktop's penguin.
+- [ ] Replace `build/Assets.car` + `build/background.tiff` (Mac DMG assets — defer to v0.2)
 - [ ] v0.1 release-gate items needing real-keyboard verification: voice call (WebRTC), FakeNitro animated emoji fallback to vanilla friend, MassDelete actual delete in test channel, RAM idle benchmark vs official Discord
 - [ ] 2nd-account E2E test for Channel A badge visibility (the only remaining channel-A gap — needs another Discordmaxxer install)
-- [ ] P4 installer + auto-updater (NSIS, code-signing, GitHub Releases pointer)
+- [x] **P4 scaffold shipped** — repository field, publish.owner/repo, NSIS InstallLocation fixed (`%LocalAppData%\Discordmaxxer` not `\vesktop`), Linux maintainer set to `lucidcobra@gmail.com`, release.yml restricted to Windows-only for v0.1, `pnpm package:win`, `pnpm regen-icons`, `RELEASING.md`. Untested — see "Verification" below.
+- [ ] **Verify P4 by cutting a v0.1.0-rc1 release.** Sequence in `RELEASING.md`. Needs the repo to exist on GitHub first (`https://github.com/diggy/discordmaxxer`).
+- [ ] No code-signing for v0.1 — users will hit Windows SmartScreen warning. Document in first-launch wizard or README install section.
 
 ## Validation tooling
 
@@ -98,7 +102,9 @@ Report goes to `overlay-scripts/reports/validate-<ts>.json`, screenshots to `ove
 
 ## Next session
 
-Lead with: "Did the v0.1 release-gate manual checks pass — voice call, FakeNitro fallback, MassDelete real delete, RAM benchmark?" If yes → P4 (installer/updater). If no → fix the failing gate item.
+Lead with: "Did the v0.1 release-gate manual checks pass — voice call, FakeNitro fallback, MassDelete real delete, RAM benchmark?" If yes → cut v0.1.0-rc1 per `RELEASING.md`. If no → fix the failing gate item.
+
+Parallel non-blocking: regen icons (`pnpm add -D sharp png-to-ico && pnpm regen-icons`), then commit the new `build/icon.ico`.
 
 Quick launch command:
 ```powershell
