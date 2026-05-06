@@ -161,6 +161,21 @@ const HUB_CSS = `
     }
     .dm-hub-toggle.on::after { left: 18px; }
     .dm-hub-toggle.locked { opacity: 0.4; cursor: not-allowed; }
+    .dm-hub-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        margin-right: 6px;
+        background: linear-gradient(135deg, #e25bff, #4c51f7);
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 900;
+        color: #fbefff;
+        letter-spacing: -0.5px;
+        vertical-align: middle;
+    }
     .dm-hub-action-btn {
         background: linear-gradient(135deg, rgba(226,91,255,0.25), rgba(76,81,247,0.25));
         color: #fbefff;
@@ -287,7 +302,7 @@ function renderPanelHTML(): string {
 
     return `<div id="${PANEL_ID}">
         <div class="dm-hub-header">
-            <div class="dm-hub-title">🐍 Discordmaxxer</div>
+            <div class="dm-hub-title"><span class="dm-hub-mark">DM</span> Discordmaxxer</div>
             <button class="dm-hub-close" data-action="close" title="Close">×</button>
         </div>
         <div class="dm-hub-tier ${tierClass}">${tierLabel}</div>

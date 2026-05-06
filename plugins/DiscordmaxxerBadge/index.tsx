@@ -32,9 +32,9 @@ const BADGE_ICON =
         `</svg>`
     );
 
-const DEFAULT_STATUS_TEXT = "Using Discordmaxxer 🐍";
+const DEFAULT_STATUS_TEXT = "Using Discordmaxxer";
 const DEFAULT_BIO_LINE = "— Using Discordmaxxer (discordmaxxer.dev)";
-const DEFAULT_PRONOUNS_TAG = "🐍 dm";
+const DEFAULT_PRONOUNS_TAG = "dm.gg";
 
 function toast(msg: string, type: any = Toasts.Type.SUCCESS) {
     Toasts.show({
