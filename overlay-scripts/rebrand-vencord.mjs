@@ -31,27 +31,12 @@ const PATCHES = [
         replace: 'wrapTab(VencordSettings, "Discordmaxxer")'
     },
 
-    // ── B. Donation card → VIP benefits ────────────────────────────────
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'title="Support the Project"',
-        replace: 'title="Get more out of Discordmaxxer"'
-    },
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'description="Please consider supporting the development of Vencord by donating!"',
-        replace: 'description="Unlock VIP themes, video backgrounds, and tier-locked plugins. Visit discordmaxxer.dev/vip for the full ladder."'
-    },
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'subtitle="Thank you for donating!"',
-        replace: 'subtitle="Thank you for going VIP."'
-    },
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'description="You can manage your perks at any time by messaging @vending.machine."',
-        replace: 'description="Your perks are unlocked automatically. Reach support via the Discordmaxxer Discord."'
-    },
+    // ── B. Donation card → DiscordmaxxerVipCard ────────────────────────
+    // The donation card was a 2-branch SpecialCard ternary (donor vs non-
+    // donor). The VIP-card patch (added later in this file) replaces the
+    // entire ternary with <DiscordmaxxerVipCard />, so the previous
+    // patches that retitled / re-described the donation card are no
+    // longer applicable — removed in commit landing the VipCard.
     {
         file: "src/components/settings/tabs/vencord/index.tsx",
         find: "description=\"Since you've contributed to Vencord you now have a cool new badge!\"",
@@ -107,20 +92,9 @@ const PATCHES = [
         replace: "Also copy Discordmaxxer info (Vencord engine, Electron, Chromium)"
     },
 
-    // ── E. Strip the pink background + fox image + heart icon from the VIP card ──
-    // The SpecialCard backgroundColor was pink (#c3a3ce); replace with our brand
-    // gradient color. The cardImage was a Vencord fox sticker; remove via empty
-    // string. The Heart import in DonateButton drives the heart icon — drop it.
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'cardImage={donateImage}',
-        replace: 'cardImage=""'
-    },
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'cardImage={VENNIE_DONATOR_IMAGE}',
-        replace: 'cardImage=""'
-    },
+    // ── E. Strip image + brand color from the contributor card ─────────
+    // (Donation-card variants of these patches were removed when the
+    // VipCard replaced the donation slot.)
     {
         file: "src/components/settings/tabs/vencord/index.tsx",
         find: 'cardImage={COZY_CONTRIB_IMAGE}',
@@ -128,23 +102,8 @@ const PATCHES = [
     },
     {
         file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'backgroundImage={DONOR_BACKGROUND_IMAGE}',
-        replace: 'backgroundImage=""'
-    },
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
         find: 'backgroundImage={CONTRIB_BACKGROUND_IMAGE}',
         replace: 'backgroundImage=""'
-    },
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'backgroundColor="#c3a3ce"',
-        replace: 'backgroundColor="#1a0e2e"'
-    },
-    {
-        file: "src/components/settings/tabs/vencord/index.tsx",
-        find: 'backgroundColor="#ED87A9"',
-        replace: 'backgroundColor="#1a3a1a"'
     },
     {
         file: "src/components/settings/tabs/vencord/index.tsx",
@@ -372,6 +331,52 @@ const PATCHES = [
         file: "src/plugins/_core/supportHelper.tsx",
         find: 'if (IS_VESKTOP) return `Vesktop v${VesktopNative.app.getVersion()}`;',
         replace: 'if (IS_VESKTOP) return `Discordmaxxer v${VesktopNative.app.getVersion()}`;'
+    },
+
+    // ── Hypixel-style VIP card replaces the donation slot ──────────────
+    // Adds the import for our 4-tier ladder card from plugins/_dm-shared/.
+    // Find spans 2 consecutive imports so re-runs see find absent (the
+    // VipCard line sits between them after patch -> idempotent).
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find:
+            'import { SpecialCard } from "@components/settings/SpecialCard";\n' +
+            'import { SettingsTab, wrapTab } from "@components/settings/tabs/BaseTab";',
+        replace:
+            'import { SpecialCard } from "@components/settings/SpecialCard";\n' +
+            'import { DiscordmaxxerVipCard } from "../../../../userplugins/_dm-shared/VipCard";\n' +
+            'import { SettingsTab, wrapTab } from "@components/settings/tabs/BaseTab";'
+    },
+    // Replace the entire isDonor ternary (two SpecialCards) with our card.
+    {
+        file: "src/components/settings/tabs/vencord/index.tsx",
+        find:
+            '            {isDonor(user?.id)\n' +
+            '                ? (\n' +
+            '                    <SpecialCard\n' +
+            '                        title="Donations"\n' +
+            '                        subtitle="Thank you for going VIP."\n' +
+            '                        description="Your perks are unlocked automatically. Reach support via the Discordmaxxer Discord."\n' +
+            '                        cardImage=""\n' +
+            '                        backgroundImage=""\n' +
+            '                        backgroundColor="#1a3a1a"\n' +
+            '                    >\n' +
+            '                        <DonateButtonComponent />\n' +
+            '                    </SpecialCard>\n' +
+            '                )\n' +
+            '                : (\n' +
+            '                    <SpecialCard\n' +
+            '                        title="Get more out of Discordmaxxer"\n' +
+            '                        description="Unlock VIP themes, video backgrounds, and tier-locked plugins. Visit discordmaxxer.dev/vip for the full ladder."\n' +
+            '                        cardImage=""\n' +
+            '                        backgroundImage=""\n' +
+            '                        backgroundColor="#1a0e2e"\n' +
+            '                    >\n' +
+            '                        <DonateButtonComponent />\n' +
+            '                    </SpecialCard>\n' +
+            '                )\n' +
+            '            }',
+        replace: '            <DiscordmaxxerVipCard />'
     }
 ];
 
