@@ -61,7 +61,8 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "DiscordmaxxerCursor", // disabled-effect by default — user picks skin
     "DiscordmaxxerPrivacy", // one-shot consent prompt to disable Discord telemetry
     "DiscordmaxxerTrim", // hides Family Center / Nitro promos / HypeSquad
-    "DiscordmaxxerPresence" // broadcasts "Playing Discordmaxxer" rich-presence activity
+    "DiscordmaxxerPresence", // broadcasts "Playing Discordmaxxer" rich-presence activity
+    "DiscordmaxxerGrant" // right-click → Grant tier; lets MAXXER++ users tag friends with VIP tiers locally
 ];
 
 const VENCORD_DEFAULTS = {

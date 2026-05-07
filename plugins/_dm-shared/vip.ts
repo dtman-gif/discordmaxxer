@@ -35,10 +35,30 @@ const HARDCODED_TIERS: Record<string, Tier> = {
     "1501342589318594625": Tier.MAXXER_PLUS_PLUS // Diggy (project owner)
 };
 
+// Local grants are managed by the DiscordmaxxerGrant plugin (right-click any
+// user -> Grant Discordmaxxer Tier). We read them via Vencord.PlainSettings
+// instead of importing the plugin to avoid a circular dep — vip.ts gets
+// imported by plugins, including DiscordmaxxerGrant itself.
+function getLocalGrants(): Record<string, Tier> {
+    try {
+        const raw = (globalThis as any).Vencord?.PlainSettings?.plugins?.DiscordmaxxerGrant?.grants;
+        if (!raw) return {};
+        return JSON.parse(raw) as Record<string, Tier>;
+    } catch {
+        return {};
+    }
+}
+
+export function getUserTier(userId: string): Tier {
+    if (HARDCODED_TIERS[userId] !== undefined) return HARDCODED_TIERS[userId];
+    const grants = getLocalGrants();
+    return grants[userId] ?? Tier.FREE;
+}
+
 export function getMyTier(): Tier {
     const me = UserStore.getCurrentUser();
     if (!me?.id) return Tier.FREE;
-    return HARDCODED_TIERS[me.id] ?? Tier.FREE;
+    return getUserTier(me.id);
 }
 
 export function hasTier(required: Tier): boolean {
