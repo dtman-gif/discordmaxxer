@@ -33,6 +33,29 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            # Discordmaxxer ships a forked Vencord with 61 rebrand patches +
+            # 11 custom plugins side-loaded into vencord-src/src/userplugins/.
+            # The build pipeline (pnpm overlay:vencord) needs vencord-src to
+            # exist on disk; it's gitignored and not in our repo, so clone it
+            # here at the pinned tag. If you bump the pinned version, also
+            # update the local vencord-src checkout so patches stay in sync.
+            - name: Clone Vencord at pinned tag (v1.14.12)
+              run: git clone --depth 1 --branch v1.14.12 https://github.com/Vendicated/Vencord.git vencord-src
+
+            - name: Install Vencord deps
+              working-directory: vencord-src
+              run: pnpm install --frozen-lockfile
+
+            # Applies overlay-scripts/rebrand-vencord.mjs (61 patches), syncs
+            # plugins/* into vencord-src/src/userplugins/, builds Vencord, and
+            # stages the 4 dist files at vencord-dist/ — which package.json's
+            # extraResources[] copies into the packaged app at resources/
+            # vencord-dist/.  Without this step the app falls back to
+            # downloading stock unpatched Vencord at runtime — which is what
+            # broke v0.1.0-rc1.
+            - name: Apply rebrand + build Vencord overlay
+              run: pnpm overlay:vencord
+
             - name: Build
               run: pnpm build
 

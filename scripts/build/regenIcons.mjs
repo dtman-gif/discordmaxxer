@@ -28,6 +28,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..");
 const SVG = resolve(ROOT, "build", "icon.svg");
 const ICO = resolve(ROOT, "build", "icon.ico");
+const TRAY_PNG = resolve(ROOT, "static", "tray", "tray.png");
+const TRAY_UNREAD_PNG = resolve(ROOT, "static", "tray", "trayUnread.png");
 
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
 
@@ -58,6 +60,26 @@ const ico = await pngToIco(pngBuffers);
 await writeFile(ICO, ico);
 console.log(`[regenIcons] wrote ${ICO} (${ico.length} bytes)`);
 
-console.log("\n.icns generation deferred to v0.2 (Mac target). For Mac:");
+// Tray PNGs — Windows + Linux read these directly. (macOS reads
+// trayTemplate.png separately; deferred to v0.2 since template icons
+// require monochrome SVGs that the bolt mark isn't yet.)
+const trayPng = await sharp(svgBuf, { density: 512 })
+    .resize(32, 32)
+    .png()
+    .toBuffer();
+await writeFile(TRAY_PNG, trayPng);
+console.log(`[regenIcons] wrote ${TRAY_PNG} (${trayPng.length} bytes)`);
+
+// trayUnread: same bolt with a 1px red border so users can distinguish
+// "you have notifications" from "tray idle" at a glance.
+const trayUnreadPng = await sharp(svgBuf, { density: 512 })
+    .resize(30, 30)
+    .extend({ top: 1, bottom: 1, left: 1, right: 1, background: { r: 255, g: 80, b: 80, alpha: 1 } })
+    .png()
+    .toBuffer();
+await writeFile(TRAY_UNREAD_PNG, trayUnreadPng);
+console.log(`[regenIcons] wrote ${TRAY_UNREAD_PNG} (${trayUnreadPng.length} bytes)`);
+
+console.log("\n.icns + trayTemplate.png generation deferred to v0.2 (Mac target). For Mac:");
 console.log("  - install iconutil or use https://github.com/idesis-gmbh/png2icons");
 console.log("  - run an .icns step here that emits build/icon.icns");
