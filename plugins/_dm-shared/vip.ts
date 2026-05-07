@@ -15,6 +15,8 @@
 
 import { UserStore } from "@webpack/common";
 
+import { getRosterTier } from "./roster";
+
 export const enum Tier {
     FREE = 0,
     MAXXER = 1,
@@ -50,7 +52,14 @@ function getLocalGrants(): Record<string, Tier> {
 }
 
 export function getUserTier(userId: string): Tier {
+    // Resolution order (see docs/v0.2-tier-roster.md):
+    //   1. HARDCODED_TIERS    — project-owner / fallback baked into the build
+    //   2. remote roster       — central source of truth (subscriptions + grants)
+    //   3. local grants        — Diggy-side overrides that haven't been published
+    //   4. FREE
     if (HARDCODED_TIERS[userId] !== undefined) return HARDCODED_TIERS[userId];
+    const remote = getRosterTier(userId);
+    if (remote !== Tier.FREE) return remote;
     const grants = getLocalGrants();
     return grants[userId] ?? Tier.FREE;
 }
