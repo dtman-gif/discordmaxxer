@@ -1,6 +1,6 @@
 {
     "name": "discordmaxxer",
-    "version": "0.1.0",
+    "version": "0.1.0-rc1",
     "private": true,
     "description": "Discord, optimized. 7th project in the maxxer suite. Forked from Vesktop.",
     "keywords": [
@@ -204,7 +204,8 @@
         },
         "nsis": {
             "include": "build/installer.nsh",
-            "oneClick": false
+            "oneClick": false,
+            "artifactName": "Discordmaxxer-Setup-${version}.${ext}"
         },
         "win": {
             "icon": "build/icon.ico",
