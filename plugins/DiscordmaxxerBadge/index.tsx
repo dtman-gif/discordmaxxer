@@ -223,7 +223,7 @@ const badge: ProfileBadge = {
     id: "discordmaxxer-user",
     description: "Discordmaxxer user — discord, optimized",
     iconSrc: BADGE_ICON,
-    link: "https://github.com/diggy/discordmaxxer",
+    link: "https://github.com/dtman-gif/discordmaxxer",
     position: BadgePosition.START,
     shouldShow: ({ userId }) => knownIds.has(userId)
 };

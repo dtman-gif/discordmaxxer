@@ -107,7 +107,7 @@ P1:
 - [ ] v0.1 release-gate items needing real-keyboard verification: voice call (WebRTC), FakeNitro animated emoji fallback to vanilla friend, MassDelete actual delete in test channel, RAM idle benchmark vs official Discord
 - [ ] 2nd-account E2E test for Channel A badge visibility (the only remaining channel-A gap — needs another Discordmaxxer install)
 - [x] **P4 scaffold shipped** — repository field, publish.owner/repo, NSIS InstallLocation fixed (`%LocalAppData%\Discordmaxxer` not `\vesktop`), Linux maintainer set to `lucidcobra@gmail.com`, release.yml restricted to Windows-only for v0.1, `pnpm package:win`, `pnpm regen-icons`, `RELEASING.md`. Untested — see "Verification" below.
-- [ ] **Verify P4 by cutting a v0.1.0-rc1 release.** Sequence in `RELEASING.md`. Needs the repo to exist on GitHub first (`https://github.com/diggy/discordmaxxer`).
+- [ ] **Verify P4 by cutting a v0.1.0-rc1 release.** Sequence in `RELEASING.md`. Needs the repo to exist on GitHub first (`https://github.com/dtman-gif/discordmaxxer`).
 - [ ] No code-signing for v0.1 — users will hit Windows SmartScreen warning. Document in first-launch wizard or README install section.
 
 ## Validation tooling

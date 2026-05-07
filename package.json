@@ -10,13 +10,13 @@
         "vencord",
         "electron"
     ],
-    "homepage": "https://github.com/diggy/discordmaxxer",
+    "homepage": "https://github.com/dtman-gif/discordmaxxer",
     "repository": {
         "type": "git",
-        "url": "https://github.com/diggy/discordmaxxer.git"
+        "url": "https://github.com/dtman-gif/discordmaxxer.git"
     },
     "bugs": {
-        "url": "https://github.com/diggy/discordmaxxer/issues"
+        "url": "https://github.com/dtman-gif/discordmaxxer/issues"
     },
     "license": "GPL-3.0-or-later",
     "author": "Diggy",
@@ -228,7 +228,7 @@
         },
         "publish": {
             "provider": "github",
-            "owner": "diggy",
+            "owner": "dtman-gif",
             "repo": "discordmaxxer"
         },
         "rpm": {

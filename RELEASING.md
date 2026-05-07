@@ -4,7 +4,7 @@
 
 ## One-time setup (do this before the first release)
 
-1. **Create the GitHub repo** at `https://github.com/diggy/discordmaxxer` (matches `homepage` + `publish.owner`/`repo` + `repository.url` in `package.json`).
+1. **Create the GitHub repo** at `https://github.com/dtman-gif/discordmaxxer` (matches `homepage` + `publish.owner`/`repo` + `repository.url` in `package.json`).
 2. **Push the existing branch:** `git push -u origin main`. This populates the repo so CI has something to check out.
 3. **Regenerate icons** (currently still Vesktop's penguin in `.ico`/`.icns`):
    ```powershell
@@ -56,7 +56,7 @@ GitHub creates a draft release; mark it published when ready.
 
 ## Auto-updater
 
-`electron-updater` (v6.6.2, already in deps) reads `publish.provider: github` from `package.json` and queries `https://api.github.com/repos/diggy/discordmaxxer/releases/latest`. When a newer `version` is found, the existing updater UI in `src/renderer/components/Updater.tsx` (handled by `src/main/updater.ts`) prompts the user.
+`electron-updater` (v6.6.2, already in deps) reads `publish.provider: github` from `package.json` and queries `https://api.github.com/repos/dtman-gif/discordmaxxer/releases/latest`. When a newer `version` is found, the existing updater UI in `src/renderer/components/Updater.tsx` (handled by `src/main/updater.ts`) prompts the user.
 
 State persists in `%APPDATA%\Discordmaxxer\State.json`:
 - `updater.snoozeUntil` — Date.now()+1 day if user clicks "Snooze"
