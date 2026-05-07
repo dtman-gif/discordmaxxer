@@ -11,25 +11,29 @@
  * settings panel shows the upgrade message; actual video injection only fires
  * when the tier check passes.
  *
- * v0.1 limitation: video URL must be http(s):// or a vesktop:// asset path.
- * Direct file:// paths are blocked by Discord's CSP. To use a local file,
- * host it on a personal CDN or copy into Vesktop's user-assets dir. A proper
- * file-picker integration ships in a later release.
+ * Sources: http(s):// URL field, OR an "Upload local video" button that uses
+ * URL.createObjectURL on a user-picked file (blob: URLs satisfy Discord's CSP).
+ * Local picks are runtime-only — not persisted across reloads.
  */
 
 import { definePluginSettings } from "@api/Settings";
 import { managedStyleRootNode } from "@api/Styles";
 import { createAndAppendStyle } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
-import { Toasts } from "@webpack/common";
+import { Button, Toasts } from "@webpack/common";
 
 import { hasTier, Tier, tierGateMessage } from "../_dm-shared/vip";
 
 const REQUIRED_TIER = Tier.MAXXER_PLUS;
 const VIDEO_ID = "dm-video-bg";
 
+// Public test video — known-good HTTPS source, ~1MB MP4.
+const SAMPLE_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
 let videoEl: HTMLVideoElement | null = null;
 let style: HTMLStyleElement;
+// Runtime-only blob URL when the user picks a local file. NOT persisted.
+let localBlobUrl: string | null = null;
 
 function buildCss() {
     const opacity = Math.max(0, Math.min(100, settings.store.opacity)) / 100;
@@ -73,9 +77,15 @@ function ensureVideoEl(): HTMLVideoElement {
     return el;
 }
 
+function activeUrl(): string {
+    // Local pick wins over typed URL when present
+    if (localBlobUrl) return localBlobUrl;
+    return settings.store.videoUrl?.trim() ?? "";
+}
+
 function applyVideoSettings() {
     if (!videoEl) return;
-    const url = settings.store.videoUrl?.trim();
+    const url = activeUrl();
     if (url && videoEl.src !== url) videoEl.src = url;
     videoEl.muted = settings.store.mute;
     videoEl.playbackRate = settings.store.playbackRate;
@@ -102,7 +112,7 @@ function refresh() {
         tearDownVideo();
         return;
     }
-    if (!settings.store.videoUrl?.trim()) {
+    if (!activeUrl()) {
         tearDownVideo();
         return;
     }
@@ -117,6 +127,69 @@ function refresh() {
             options: { duration: 4000, position: Toasts.Position.TOP }
         });
     });
+}
+
+function pickLocalFile() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "video/*";
+    input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        if (localBlobUrl) URL.revokeObjectURL(localBlobUrl);
+        localBlobUrl = URL.createObjectURL(file);
+        Toasts.show({
+            message: `🎬 Loaded local video: ${file.name} (${(file.size / 1_048_576).toFixed(1)} MB)`,
+            type: Toasts.Type.SUCCESS,
+            id: Toasts.genId(),
+            options: { duration: 3000, position: Toasts.Position.TOP }
+        });
+        if (!settings.store.enable) settings.store.enable = true;
+        refresh();
+    };
+    input.click();
+}
+
+function clearLocalFile() {
+    if (localBlobUrl) {
+        URL.revokeObjectURL(localBlobUrl);
+        localBlobUrl = null;
+    }
+    refresh();
+}
+
+function VideoControls() {
+    return (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <Button onClick={pickLocalFile} size={Button.Sizes.SMALL}>
+                📁 Upload local video
+            </Button>
+            <Button onClick={clearLocalFile} size={Button.Sizes.SMALL} color={Button.Colors.RED}>
+                ✕ Clear upload
+            </Button>
+            <Button
+                size={Button.Sizes.SMALL}
+                color={Button.Colors.GREEN}
+                onClick={() => {
+                    if (localBlobUrl) {
+                        URL.revokeObjectURL(localBlobUrl);
+                        localBlobUrl = null;
+                    }
+                    settings.store.videoUrl = SAMPLE_VIDEO_URL;
+                    if (!settings.store.enable) settings.store.enable = true;
+                    refresh();
+                    Toasts.show({
+                        message: "🎬 Sample video applied — Big Buck Bunny",
+                        type: Toasts.Type.SUCCESS,
+                        id: Toasts.genId(),
+                        options: { duration: 3000, position: Toasts.Position.TOP }
+                    });
+                }}
+            >
+                🎬 Test with sample
+            </Button>
+        </div>
+    );
 }
 
 const settings = definePluginSettings({
@@ -141,10 +214,14 @@ const settings = definePluginSettings({
     videoUrl: {
         type: OptionType.STRING,
         description:
-            "Video URL — http(s):// or vesktop:// asset path. Direct file:// is blocked by Discord's CSP. " +
-            "Try hosting your MP4 on a Discord CDN, GitHub raw, or any public HTTPS endpoint.",
+            "Video URL — http(s):// path. Or use the 'Upload local video' button below to play a file off your disk (kept in memory only, not persisted).",
         default: "",
         onChange: refresh
+    },
+    videoControls: {
+        type: OptionType.COMPONENT,
+        description: "",
+        component: VideoControls
     },
     opacity: {
         type: OptionType.SLIDER,
@@ -198,6 +275,10 @@ export default definePlugin({
 
     stop() {
         tearDownVideo();
+        if (localBlobUrl) {
+            URL.revokeObjectURL(localBlobUrl);
+            localBlobUrl = null;
+        }
         style?.remove();
     }
 });

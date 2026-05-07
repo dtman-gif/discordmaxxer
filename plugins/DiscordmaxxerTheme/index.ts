@@ -22,22 +22,24 @@ import { managedStyleRootNode } from "@api/Styles";
 import { createAndAppendStyle } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
 
-import { DEFAULT_THEME, THEME_ORDER, themeCss, THEMES, ThemeId } from "../_dm-shared/themes";
+import { DEFAULT_THEME, THEME_ORDER, themeCss, themeFlairCss, THEMES, ThemeId } from "../_dm-shared/themes";
 
 let style: HTMLStyleElement;
+let flairStyle: HTMLStyleElement;
 let appliedBodyClass: string | null = null;
 
 function applyTheme(id: ThemeId) {
     const theme = THEMES[id] ?? THEMES[DEFAULT_THEME];
 
     if (style) style.textContent = themeCss(theme);
+    if (flairStyle) flairStyle.textContent = settings.store.enableFlair === false ? "" : themeFlairCss(theme);
 
     // Body-class swap so per-theme component overrides can scope cleanly
     if (appliedBodyClass) document.body.classList.remove(appliedBodyClass);
     document.body.classList.add(theme.bodyClass);
     appliedBodyClass = theme.bodyClass;
 
-    console.log(`[DiscordmaxxerTheme] applied theme=${id}`);
+    console.log(`[DiscordmaxxerTheme] applied theme=${id} flair=${settings.store.enableFlair !== false}`);
 }
 
 const settings = definePluginSettings({
@@ -51,6 +53,12 @@ const settings = definePluginSettings({
             default: id === DEFAULT_THEME
         })),
         onChange: (value: ThemeId) => applyTheme(value)
+    },
+    enableFlair: {
+        type: OptionType.BOOLEAN,
+        description: "Enable theme character — layout (corners, density), custom typing dots, mention animations, hover effects. Turn off to keep colors only.",
+        default: true,
+        onChange: () => applyTheme(settings.store.selected as ThemeId)
     }
 });
 
@@ -63,11 +71,13 @@ export default definePlugin({
 
     start() {
         style = createAndAppendStyle("dm-theme", managedStyleRootNode);
+        flairStyle = createAndAppendStyle("dm-theme-flair", managedStyleRootNode);
         applyTheme(settings.store.selected as ThemeId);
     },
 
     stop() {
         style?.remove();
+        flairStyle?.remove();
         if (appliedBodyClass) {
             document.body.classList.remove(appliedBodyClass);
             appliedBodyClass = null;

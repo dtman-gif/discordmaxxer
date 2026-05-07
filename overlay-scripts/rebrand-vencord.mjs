@@ -189,6 +189,189 @@ const PATCHES = [
         file: "src/components/settings/DonateButton.tsx",
         find: "<Heart />\n            View VIP",
         replace: "View VIP"
+    },
+
+    // ── I. ChatButtons API: right-click chat bar context menu ──
+    {
+        file: "src/api/ChatButtons.tsx",
+        find: '<Menu.MenuItem id="vc-chat-buttons" key="vencord-chat-buttons" label="Vencord Buttons">',
+        replace: '<Menu.MenuItem id="vc-chat-buttons" key="vencord-chat-buttons" label="Discordmaxxer Buttons">'
+    },
+
+    // ── J. Toolbox header tooltip ──
+    {
+        file: "src/plugins/vencordToolbox/index.tsx",
+        find: 'tooltip={isShown ? null : "Vencord Toolbox"}',
+        replace: 'tooltip={isShown ? null : "Discordmaxxer Toolbox"}'
+    },
+
+    // ── K. GameActivityToggle: header dropdown ──
+    {
+        file: "src/plugins/gameActivityToggle/index.tsx",
+        find: '{ label: "Vencord Toolbox", value: "TOOLBOX" }',
+        replace: '{ label: "Discordmaxxer Toolbox", value: "TOOLBOX" }'
+    },
+
+    // ── L. Monaco QuickCSS editor window title ──
+    {
+        file: "src/main/monacoWin.html",
+        find: "<title>Vencord QuickCSS Editor</title>",
+        replace: "<title>Discordmaxxer QuickCSS Editor</title>"
+    },
+
+    // ── M. NotificationSettings — in-app notification description ──
+    {
+        file: "src/components/settings/tabs/vencord/NotificationSettings.tsx",
+        find: "<li><strong>Vencord Notifications</strong>: These are in-app notifications</li>",
+        replace: "<li><strong>Discordmaxxer Notifications</strong>: These are in-app notifications</li>"
+    },
+    {
+        file: "src/components/settings/tabs/vencord/NotificationSettings.tsx",
+        find: '{ label: "Always use Vencord notifications", value: "never" },',
+        replace: '{ label: "Always use Discordmaxxer notifications", value: "never" },'
+    },
+
+    // ── N. CloudTab — settings sync description ──
+    {
+        file: "src/components/settings/tabs/sync/CloudTab.tsx",
+        find: 'description="Save your Vencord settings to the cloud so you can easily keep them the same on all your devices"',
+        replace: 'description="Save your Discordmaxxer settings to the cloud so you can easily keep them the same on all your devices"'
+    },
+
+    // ── O. Updater — outdated-app card ──
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: "<HeadingSecondary>Vesktop Outdated</HeadingSecondary>",
+        replace: "<HeadingSecondary>Discordmaxxer Outdated</HeadingSecondary>"
+    },
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: "<Paragraph>Your version of Vesktop is outdated!</Paragraph>",
+        replace: "<Paragraph>Your version of Discordmaxxer is outdated!</Paragraph>"
+    },
+    {
+        file: "src/components/settings/tabs/updater/index.tsx",
+        find: "Open Vesktop Updater",
+        replace: "Open Discordmaxxer Updater"
+    },
+
+    // ── P. SettingsSync offline — backup file label + parse error ──
+    {
+        file: "src/api/SettingsSync/offline.ts",
+        find: 'throw new Error("Invalid Settings. Is this even a Vencord Settings file?");',
+        replace: 'throw new Error("Invalid Settings. Is this even a Discordmaxxer Settings file?");'
+    },
+    {
+        file: "src/api/SettingsSync/offline.ts",
+        find: '{ name: "Vencord Settings Backup", extensions: ["json"] },',
+        replace: '{ name: "Discordmaxxer Settings Backup", extensions: ["json"] },'
+    },
+
+    // ── Q. Plugins-tab excluded-reasons (user-facing) ──
+    {
+        file: "src/components/settings/tabs/plugins/index.tsx",
+        find: 'desktop: "Discord Desktop app or Vesktop",',
+        replace: 'desktop: "Discord Desktop app or Discordmaxxer",'
+    },
+    {
+        file: "src/components/settings/tabs/plugins/index.tsx",
+        find: 'vesktop: "Vesktop app",',
+        replace: 'vesktop: "Discordmaxxer app",'
+    },
+    {
+        file: "src/components/settings/tabs/plugins/index.tsx",
+        find: 'web: "Vesktop app and the Web version of Discord",',
+        replace: 'web: "Discordmaxxer app and the Web version of Discord",'
+    },
+    {
+        file: "src/components/settings/tabs/plugins/index.tsx",
+        find: 'dev: "Developer version of Vencord"',
+        replace: 'dev: "Developer build of Discordmaxxer"'
+    },
+
+    // ── R. CSP manager + theme CSP error card ──
+    {
+        file: "src/main/csp/manager.ts",
+        find: '`You will have to fully close and restart ${IS_DISCORD_DESKTOP ? "Discord" : "Vesktop"} for the changes to take effect.`;',
+        replace: '`You will have to fully close and restart ${IS_DISCORD_DESKTOP ? "Discord" : "Discordmaxxer"} for the changes to take effect.`;'
+    },
+    {
+        file: "src/components/settings/tabs/themes/CspErrorCard.tsx",
+        find: 'After allowing a domain, you have to fully close (from tray / task manager) and restart {IS_DISCORD_DESKTOP ? "Discord" : "Vesktop"} to apply the change.',
+        replace: 'After allowing a domain, you have to fully close (from tray / task manager) and restart {IS_DISCORD_DESKTOP ? "Discord" : "Discordmaxxer"} to apply the change.'
+    },
+
+    // ── S. webKeybinds plugin description ──
+    {
+        file: "src/plugins/webKeybinds.web/index.ts",
+        find: 'description: "Re-adds keybinds missing in the web version of Discord: ctrl+t, ctrl+shift+t, ctrl+tab, ctrl+shift+tab, ctrl+1-9, ctrl+,. Only works fully on Vesktop/Legcord, not inside your browser",',
+        replace: 'description: "Re-adds keybinds missing in the web version of Discord: ctrl+t, ctrl+shift+t, ctrl+tab, ctrl+shift+tab, ctrl+1-9, ctrl+,. Only works fully on Discordmaxxer, not inside your browser",'
+    },
+
+    // ── T. SupportHelper user-visible copy + slash-command names ──
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: '"Vencord DevBuild": !IS_STANDALONE,',
+        replace: '"Discordmaxxer DevBuild": !IS_STANDALONE,'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: 'name: "vencord-debug",',
+        replace: 'name: "discordmaxxer-debug",'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: 'description: "Send Vencord debug info",',
+        replace: 'description: "Send Discordmaxxer debug info",'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: 'name: "vencord-plugins",',
+        replace: 'name: "discordmaxxer-plugins",'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: 'description: "Send Vencord plugin list",',
+        replace: 'description: "Send Discordmaxxer plugin list",'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: '<Forms.FormText>You are using an outdated version of Vencord! Chances are, your issue is already fixed.</Forms.FormText>',
+        replace: '<Forms.FormText>You are using an outdated version of Discordmaxxer! Chances are, your issue is already fixed.</Forms.FormText>'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: '<Forms.FormText>You are using an externally updated Vencord version, which we do not provide support for!</Forms.FormText>',
+        replace: '<Forms.FormText>You are using an externally updated Discordmaxxer build, which we do not provide support for!</Forms.FormText>'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: '<Forms.FormText>You are using a custom build of Vencord, which we do not provide support for!</Forms.FormText>',
+        replace: '<Forms.FormText>You are using a custom build of Discordmaxxer, which we do not provide support for!</Forms.FormText>'
+    },
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: 'props.message.content.includes("/vencord-debug") || props.message.content.includes("/vencord-plugins")',
+        replace: 'props.message.content.includes("/discordmaxxer-debug") || props.message.content.includes("/discordmaxxer-plugins")'
+    },
+
+    // ── Settings sidebar version footer (most visible leak) ────────────
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: 'if (IS_VESKTOP) return ` (Vesktop v${VesktopNative.app.getVersion()})`;',
+        replace: 'if (IS_VESKTOP) return ` (v${VesktopNative.app.getVersion()})`;'
+    },
+    {
+        file: "src/plugins/_core/settings.tsx",
+        find: 'const rows = [`Vencord ${gitHash}${additionalInfo}`];',
+        replace: 'const rows = [`Discordmaxxer ${gitHash}${additionalInfo}`];'
+    },
+
+    // ── Support helper client-name string ──────────────────────────────
+    {
+        file: "src/plugins/_core/supportHelper.tsx",
+        find: 'if (IS_VESKTOP) return `Vesktop v${VesktopNative.app.getVersion()}`;',
+        replace: 'if (IS_VESKTOP) return `Discordmaxxer v${VesktopNative.app.getVersion()}`;'
     }
 ];
 

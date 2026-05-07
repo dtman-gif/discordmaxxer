@@ -300,3 +300,192 @@ export function themeCss(theme: Theme): string {
     }` : ""}
     `;
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Theme flair — layout density, animations, custom typing dots, and
+ * per-theme character traits. Layered ON TOP of the palette CSS so
+ * themes can be played with independently.
+ *
+ * Each theme has a personality:
+ *   maxxer  — soft, glowy, default brand. Subtle magenta pulse.
+ *   val     — tactical, sharp corners, cream-on-charcoal, scanline cursor blink.
+ *   sonic   — speed, ultra-rounded, gold sparkle on hover, fast transitions.
+ *   dmc     — gothic, sharp angled corners, bloody drips, slow ominous fades.
+ *   bo3     — military stencil, blocky corners, neon orange glow, HUD typing.
+ * ─────────────────────────────────────────────────────────────────── */
+export function themeFlairCss(theme: Theme): string {
+    const p = theme.palette;
+    const cls = theme.bodyClass;
+
+    const SHARED_KEYFRAMES = `
+        @keyframes dm-pulse-${theme.id} {
+            0%, 100% { box-shadow: 0 0 0 0 ${p.brandTrans}; }
+            50% { box-shadow: 0 0 0 6px transparent; }
+        }
+        @keyframes dm-typing-${theme.id} {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+            30% { transform: translateY(-3px); opacity: 1; }
+        }
+        @keyframes dm-mention-glow-${theme.id} {
+            0%, 100% { box-shadow: inset 2px 0 0 ${p.brand}; }
+            50% { box-shadow: inset 2px 0 0 ${p.brandSoft}, 0 0 8px ${p.brandTrans}; }
+        }
+        @keyframes dm-drip-${theme.id} {
+            0% { transform: translateY(-4px); opacity: 0; }
+            40% { opacity: 1; }
+            100% { transform: translateY(2px); opacity: 0; }
+        }
+    `;
+
+    // Per-theme rule blocks
+    const PERSONALITY: Record<ThemeId, string> = {
+        maxxer: `
+            /* Soft glow on mention badges, subtle pulse on unread pings */
+            body.${cls} [class*="mentionsBadge_"], body.${cls} [class*="numberBadge_"] {
+                animation: dm-pulse-${theme.id} 2.4s ease-in-out infinite;
+            }
+            /* Gentle 6px corners — keeps Discord shape but softer */
+            body.${cls} [class*="chat_"] [class*="messageContent_"],
+            body.${cls} [class*="container_"] [class*="bar_"] {
+                border-radius: 6px;
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                background-color: ${p.brand} !important;
+                animation: dm-typing-${theme.id} 1.2s ease-in-out infinite;
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.15s; }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.30s; }
+        `,
+
+        val: `
+            /* Tactical: sharp 2px corners, no rounding, scanline cursor */
+            body.${cls} [class*="messageContent_"],
+            body.${cls} [class*="card_"],
+            body.${cls} [class*="modal_"],
+            body.${cls} button,
+            body.${cls} [class*="categoryItem_"] { border-radius: 2px !important; }
+            /* Inset bracket on hovered messages — Val UI motif */
+            body.${cls} [class*="messageListItem_"]:hover {
+                box-shadow: inset 3px 0 0 ${p.brand}, inset -3px 0 0 ${p.brand};
+            }
+            /* Mention strip = brand-red instead of yellow */
+            body.${cls} [class*="mentioned_"] [class*="content_"] {
+                box-shadow: inset 2px 0 0 ${p.brand};
+                animation: dm-mention-glow-${theme.id} 1.6s ease-in-out infinite;
+            }
+            /* Replace dots with tactical bracket — '[ • • • ]' */
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                width: 4px; height: 4px; background-color: ${p.brand} !important;
+                animation: dm-typing-${theme.id} 0.9s steps(2, end) infinite;
+            }
+            /* Cream-on-charcoal headers */
+            body.${cls} h1, body.${cls} h2, body.${cls} h3 {
+                font-family: 'Tungsten', 'Bebas Neue', 'Anton', Impact, sans-serif;
+                letter-spacing: 0.04em; text-transform: uppercase;
+            }
+            /* Caret color — cream */
+            body.${cls} [class*="textArea_"] [class*="slateContainer_"] { caret-color: ${p.textNormal}; }
+        `,
+
+        sonic: `
+            /* Speed — ultra-rounded, fast transitions, gold sparkle on hover */
+            body.${cls} [class*="messageContent_"],
+            body.${cls} [class*="card_"],
+            body.${cls} button,
+            body.${cls} [class*="modal_"],
+            body.${cls} [class*="container_"] [class*="popout_"] { border-radius: 14px !important; }
+            body.${cls} [class*="avatar_"] { border-radius: 50% !important; }
+            body.${cls} * { transition-duration: 80ms !important; }
+            body.${cls} [class*="messageListItem_"]:hover {
+                background: linear-gradient(90deg, ${p.brandTrans} 0%, transparent 12%);
+            }
+            /* Gold lightning bolt on unread badge */
+            body.${cls} [class*="mentionsBadge_"] {
+                background: linear-gradient(135deg, ${p.brand}, ${p.brandSoft}) !important;
+                box-shadow: 0 0 10px ${p.brandTrans};
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                background-color: ${p.brand} !important;
+                animation: dm-typing-${theme.id} 0.6s ease-in-out infinite;
+                box-shadow: 0 0 6px ${p.brandTrans};
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.10s; }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.20s; }
+        `,
+
+        dmc: `
+            /* Gothic: sharp angled corners (clip-path on cards), serif accents */
+            body.${cls} [class*="messageContent_"] {
+                border-radius: 0 !important;
+                position: relative;
+            }
+            body.${cls} [class*="card_"], body.${cls} [class*="modal_"] {
+                border-radius: 0 !important;
+                clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+            }
+            body.${cls} h1, body.${cls} h2, body.${cls} h3, body.${cls} h4 {
+                font-family: ${theme.headingFont || "'Cormorant Garamond', Georgia, serif"};
+                letter-spacing: 0.02em;
+            }
+            /* Bloody drip on mention border */
+            body.${cls} [class*="mentioned_"] [class*="content_"]::before {
+                content: ""; position: absolute; left: 0; top: 100%;
+                width: 2px; height: 6px; background: ${p.brand};
+                animation: dm-drip-${theme.id} 1.8s ease-in infinite;
+            }
+            body.${cls} [class*="mentioned_"] [class*="content_"] {
+                box-shadow: inset 2px 0 0 ${p.brand};
+                position: relative;
+            }
+            /* Slow ominous fade-in on new messages */
+            body.${cls} [class*="messageListItem_"] {
+                animation: dm-message-fade-dmc 420ms ease-out;
+            }
+            @keyframes dm-message-fade-dmc {
+                from { opacity: 0; filter: blur(2px); transform: translateY(2px); }
+                to { opacity: 1; filter: blur(0); transform: translateY(0); }
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                background-color: ${p.brand} !important;
+                animation: dm-typing-${theme.id} 1.6s ease-in-out infinite;
+                box-shadow: 0 0 4px ${p.brandTrans};
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.30s; }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.60s; }
+        `,
+
+        bo3: `
+            /* Military stencil: blocky corners, neon orange glow on accents */
+            body.${cls} [class*="messageContent_"],
+            body.${cls} [class*="card_"],
+            body.${cls} [class*="modal_"],
+            body.${cls} button { border-radius: 1px !important; }
+            body.${cls} h1, body.${cls} h2, body.${cls} h3 {
+                font-family: 'Tungsten', 'Oswald', 'Bebas Neue', Impact, sans-serif;
+                letter-spacing: 0.05em; text-transform: uppercase;
+            }
+            /* HUD-style underline on usernames */
+            body.${cls} [class*="messageListItem_"]:hover [class*="username_"] {
+                text-shadow: 0 0 4px ${p.brandTrans};
+                border-bottom: 1px solid ${p.brand};
+            }
+            /* Mention badge: angled stencil notch */
+            body.${cls} [class*="mentionsBadge_"], body.${cls} [class*="numberBadge_"] {
+                clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
+                background: ${p.brand} !important;
+                box-shadow: 0 0 8px ${p.brandTrans};
+            }
+            /* Typing — three vertical bars instead of dots, like a HUD scan */
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                width: 2px !important; height: 8px !important; border-radius: 0 !important;
+                background-color: ${p.brand} !important;
+                animation: dm-typing-${theme.id} 1.0s ease-in-out infinite;
+                box-shadow: 0 0 6px ${p.brandTrans};
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.12s; }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.24s; }
+        `
+    };
+
+    return `${SHARED_KEYFRAMES}\n${PERSONALITY[theme.id] || ""}`;
+}
