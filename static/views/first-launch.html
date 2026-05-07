@@ -183,11 +183,14 @@
 
     <form>
         <label>
-            <h2>Discord Branch</h2>
+            <div>
+                <h2>Discord Branch</h2>
+                <span>Which Discord build to load. <strong>stable</strong> is the regular discord.com release (recommended). <strong>ptb</strong> is the public beta — features land ~1-2 weeks early. <strong>canary</strong> is bleeding-edge, breaks often. Changeable later in settings.</span>
+            </div>
             <select name="discordBranch">
-                <option value="stable">stable</option>
-                <option value="canary">canary</option>
-                <option value="ptb">ptb</option>
+                <option value="stable">stable (recommended)</option>
+                <option value="ptb">ptb (public beta)</option>
+                <option value="canary">canary (bleeding edge)</option>
             </select>
         </label>
 
