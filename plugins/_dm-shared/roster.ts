@@ -28,7 +28,7 @@ import { Tier } from "./vip";
 // See docs/v0.2-tier-roster.md "Domain & hub integration" — this single
 // constant is the swap point.
 const ROSTER_URL =
-    "https://raw.githubusercontent.com/dtman-gif/discordmaxxer/main/data/tiers.json";
+    "https://raw.githubusercontent.com/MaxxTopia/discordmaxxer/main/data/tiers.json";
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const FETCH_TIMEOUT_MS = 8000;

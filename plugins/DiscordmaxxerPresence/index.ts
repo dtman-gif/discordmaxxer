@@ -37,7 +37,7 @@ const DEFAULT_NAME = "Discordmaxxer";
 const DEFAULT_DETAILS = "Discord, optimized";
 const DEFAULT_STATE = "discordmaxxer.dev";
 const DEFAULT_BUTTON_LABEL = "Get Discordmaxxer";
-const DEFAULT_BUTTON_URL = "https://github.com/dtman-gif/discordmaxxer/releases/latest";
+const DEFAULT_BUTTON_URL = "https://github.com/MaxxTopia/discordmaxxer/releases/latest";
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
