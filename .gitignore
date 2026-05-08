@@ -16,3 +16,8 @@ overlay-scripts/reports/
 image.png
 unknown.png
 *.screenshot.png
+
+# Test recordings (Diggy drops these for bug reports)
+*.mp4
+*.mov
+*.webm
