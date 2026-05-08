@@ -39,7 +39,9 @@ let style: HTMLStyleElement;
 let observer: MutationObserver | null = null;
 
 const HUB_CSS = `
-    /* Toolbar button — match Discord's user-panel icon style */
+    /* Toolbar button — adapts to active Discordmaxxer theme via Discord's
+       --brand-experiment family (themes.ts overrides these per-theme:
+       Maxxer=magenta, Val=red, Sonic=gold, DMC=blood-red, BO3=neon-orange). */
     #${FAB_ID} {
         display: inline-flex;
         align-items: center;
@@ -49,8 +51,8 @@ const HUB_CSS = `
         margin: 0 2px;
         padding: 0;
         border-radius: 4px;
-        background: linear-gradient(135deg, #e25bff, #4c51f7);
-        color: #fbefff;
+        background: linear-gradient(135deg, var(--brand-experiment, #e25bff), var(--brand-experiment-700, #4c51f7));
+        color: #ffffff;
         font-weight: 800;
         font-size: 11px;
         letter-spacing: -0.3px;
@@ -58,11 +60,11 @@ const HUB_CSS = `
         cursor: pointer;
         transition: filter 0.15s, box-shadow 0.15s;
         font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-        box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.14);
     }
     #${FAB_ID}:hover {
-        filter: brightness(1.15);
-        box-shadow: 0 0 12px rgba(226,91,255,0.55), 0 0 0 1px rgba(255,255,255,0.2);
+        filter: brightness(1.18);
+        box-shadow: 0 0 14px var(--brand-experiment-30a, rgba(226,91,255,0.45)), 0 0 0 1px rgba(255,255,255,0.22);
     }
 
     /* Floating panel anchored bottom-left, above user panel */
@@ -235,13 +237,19 @@ interface QuickToggle {
     settingKey?: string;
     minTier?: Tier;
     note?: string;
+    /** When true, skip the plugin restart on toggle (the setting's onChange
+     *  handles runtime state cleanly without needing a full stop/start
+     *  cycle). Used for live-state mirrors like TM/CompactView's
+     *  manuallyActive — restarting them would re-register hotkeys, which is
+     *  expensive + visible (toast spam). */
+    noRestart?: boolean;
 }
 
 const QUICK_TOGGLES: QuickToggle[] = [
     { plugin: "VideoBackground", label: "🌟 Video Background", settingKey: "enable", minTier: Tier.MAXXER_PLUS, note: "Set URL in Discordmaxxer plugin settings" },
     { plugin: "DiscordmaxxerTheme", label: "🎨 Maxxer Theme", settingKey: "enable" },
-    { plugin: "TournamentMode", label: "🎮 Tournament Mode (Ctrl+Alt+T)" },
-    { plugin: "CompactView", label: "📐 Compact View (Ctrl+Alt+H)" },
+    { plugin: "TournamentMode", label: "🎮 Tournament Mode", settingKey: "manuallyActive", note: "Or press Ctrl+Alt+T", noRestart: true },
+    { plugin: "CompactView", label: "📐 Compact View", settingKey: "manuallyActive", note: "Or press Ctrl+Alt+H", noRestart: true },
     { plugin: "MassDelete", label: "🗑️ Mass-Delete menu", settingKey: "enableContextMenu", note: "OPT-IN — TOS risk" },
     { plugin: "DiscordmaxxerBadge", label: "💎 Profile Badge", settingKey: "showOnOwnProfile" }
 ];
@@ -258,14 +266,19 @@ function getSetting(plugin: string, key: string): boolean {
     return !!vencord()?.PlainSettings?.plugins?.[plugin]?.[key];
 }
 
-function setSetting(plugin: string, key: string, value: boolean) {
+function setSetting(plugin: string, key: string, value: boolean, noRestart?: boolean) {
     const v = vencord();
     if (!v?.Settings?.plugins?.[plugin]) return;
 
     // 1) Persist the value through Vencord's settings proxy.
     v.Settings.plugins[plugin][key] = value;
 
-    // 2) Re-init the plugin so its start() reads the new value and
+    // 2) noRestart: setting's onChange handles runtime state cleanly (e.g.,
+    //    TournamentMode's manuallyActive flips active+CSS without needing
+    //    a full plugin re-init). Skip the heavy restart in that case.
+    if (noRestart) return;
+
+    // 3) Otherwise re-init the plugin so its start() reads the new value and
     //    onChange-style side effects (CSS injection, badge re-registration,
     //    hotkey re-binding) actually take effect.
     const pluginObj = v.Plugins?.plugins?.[plugin];
@@ -361,7 +374,8 @@ function ensurePanelRoot() {
             const plugin = t.dataset.plugin!;
             const key = t.dataset.key!;
             const next = !getSetting(plugin, key);
-            setSetting(plugin, key, next);
+            const entry = QUICK_TOGGLES.find(e => e.plugin === plugin && e.settingKey === key);
+            setSetting(plugin, key, next, entry?.noRestart);
             // Re-render after setting
             panelRoot!.innerHTML = renderPanelHTML();
         }

@@ -75,6 +75,18 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Enable Compact View automatically on Discord launch",
         default: false
+    },
+    // Runtime mirror of the `active` module-level flag. Hidden from the
+    // settings UI (DiscordmaxxerHub uses it to render a real toggle button
+    // alongside the hotkey). Kept in sync with setActive() on every flip.
+    manuallyActive: {
+        type: OptionType.BOOLEAN,
+        description: "Live runtime toggle (mirrored to module state). Toggle from the Discordmaxxer Hub.",
+        default: false,
+        hidden: true,
+        onChange: (val: boolean) => {
+            if (val !== active) setActive(val);
+        }
     }
 });
 
@@ -102,6 +114,9 @@ function refresh() {
 function setActive(next: boolean) {
     active = next;
     refresh();
+    // Mirror to settings so the Hub's toggle button reflects current state
+    // even when the user flipped via hotkey (not via the toggle).
+    try { settings.store.manuallyActive = next; } catch { /* settings not init yet */ }
     Toasts.show({
         message: active ? "📐 Compact View: ON" : "Compact View: OFF",
         type: active ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE,

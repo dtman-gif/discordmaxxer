@@ -1,128 +1,170 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <!--
-    Direction B — "The Strip"
-    Discord's speech-bubble silhouette with the bloat physically peeling off.
-    Four ascending fading slices float off the top-right of the bubble; the
-    remaining mass is brighter than baseline, has a glowing aqua cut-edge,
-    and a gold [++] bracket sitting bottom-left where Discord's controller
-    eye would be. Renders the headline marketing claim ("Discord. Minus
-    753 MB.") literally — bloat visibly leaves the brand.
+    The Strip — Pentagram-final.
+    Hybrid B-dominant: universal messenger silhouette with structural
+    bracket frame (v2), restored blurple body (v1), one confident gold
+    [++] inside the bubble, ablation cut destroying the right bracket's
+    top half, 3 dimensional wedges + 8 particle squares along unified
+    +28° vector. The mark is a fork of Discord that got hit by something
+    faster than it.
   -->
   <defs>
-    <radialGradient id="bbg" cx="38%" cy="34%" r="78%">
-      <stop offset="0%"   stop-color="#a3aeff"/>
-      <stop offset="40%"  stop-color="#6f7cff"/>
-      <stop offset="80%"  stop-color="#5865F2"/>
-      <stop offset="100%" stop-color="#3b46d4"/>
+    <!-- Bubble body — restored Discord-blurple, slightly deepened. -->
+    <radialGradient id="m" cx="43%" cy="40%" r="78%">
+      <stop offset="0%"   stop-color="#8E9AFF"/>
+      <stop offset="45%"  stop-color="#5865F2"/>
+      <stop offset="85%"  stop-color="#3B46D4"/>
+      <stop offset="100%" stop-color="#2A33B0"/>
     </radialGradient>
-    <linearGradient id="bhi" x1="50%" y1="0%" x2="50%" y2="55%">
-      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.42"/>
+    <!-- White specular highlight — top half, 28% opacity. -->
+    <linearGradient id="hi" x1="50%" y1="0%" x2="50%" y2="55%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.28"/>
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="bsh" x1="50%" y1="55%" x2="50%" y2="100%">
+    <!-- Inner bottom shade — 22% black, soft feather. -->
+    <linearGradient id="sh" x1="50%" y1="70%" x2="50%" y2="100%">
       <stop offset="0%"   stop-color="#000000" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.22"/>
     </linearGradient>
-    <linearGradient id="bcut" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#bff7ff"/>
+    <!-- Cut plasma — aqua tri-stop. -->
+    <linearGradient id="aq" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#BFF7FF"/>
       <stop offset="50%"  stop-color="#55FFFF"/>
-      <stop offset="100%" stop-color="#16d6e6"/>
+      <stop offset="100%" stop-color="#16D6E6"/>
     </linearGradient>
-    <linearGradient id="bgld" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#FFD64A"/>
-      <stop offset="100%" stop-color="#FFAA00"/>
+    <!-- Gold for brackets + ++ glyph. -->
+    <linearGradient id="g" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%"   stop-color="#FFAA00"/>
+      <stop offset="100%" stop-color="#D98B00"/>
     </linearGradient>
-    <filter id="bshadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0a0a40" flood-opacity="0.55"/>
+    <!-- Wedge gradient — lit edge faces cut, dark trails. -->
+    <linearGradient id="wd" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%"   stop-color="#A3AEFF"/>
+      <stop offset="100%" stop-color="#2A33B0"/>
+    </linearGradient>
+
+    <!-- Drop shadow under bubble. -->
+    <filter id="bsh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#000" flood-opacity="0.55"/>
     </filter>
-    <filter id="bglow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="9" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <!-- Cut + bracket glow. -->
+    <filter id="gl" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="bsliceglow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <!-- Wedge glow. -->
+    <filter id="gl2" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+
+    <!-- Bubble silhouette — universal messenger. -->
     <clipPath id="bclip">
-      <path d="M 332 200
-               L 688 200
-               L 864 568
-               A 168 168 0 0 1 696 736
-               L 412 736
-               L 308 832
-               L 332 736
-               L 296 736
-               A 168 168 0 0 1 128 568
-               L 128 368
-               A 168 168 0 0 1 296 200 Z"/>
+      <path d="M 144 170
+               H 784 a96 96 0 0 1 96 96
+               V 610 a96 96 0 0 1 -96 96
+               H 324
+               L 260 880
+               L 260 706
+               H 240 a96 96 0 0 1 -96 -96
+               V 266 a96 96 0 0 1 96 -96 Z"/>
+    </clipPath>
+    <!-- Cut clip — used to ablate right bracket's top half. -->
+    <clipPath id="cutClip">
+      <path d="M 0 380 L 1024 380 L 1024 1024 L 0 1024 Z"/>
     </clipPath>
   </defs>
 
-  <rect width="1024" height="1024" fill="#0B0F1C"/>
+  <!-- Stage. -->
+  <rect width="1024" height="1024" fill="#0A0E1A"/>
 
-  <!-- Suite-canon corner ticks: aqua top-left, gold bottom-right. -->
-  <line x1="64"  y1="64"  x2="220" y2="64"  stroke="url(#bcut)" stroke-opacity="0.35" stroke-width="3"/>
-  <line x1="64"  y1="64"  x2="64"  y2="220" stroke="url(#bcut)" stroke-opacity="0.35" stroke-width="3"/>
-  <line x1="960" y1="960" x2="804" y2="960" stroke="url(#bgld)" stroke-opacity="0.35" stroke-width="3"/>
-  <line x1="960" y1="960" x2="960" y2="804" stroke="url(#bgld)" stroke-opacity="0.35" stroke-width="3"/>
+  <!-- Suite-canon corner ticks — aqua top-left, gold bottom-right. -->
+  <line x1="64"  y1="64"  x2="220" y2="64"  stroke="url(#aq)" stroke-opacity="0.35" stroke-width="3"/>
+  <line x1="64"  y1="64"  x2="64"  y2="220" stroke="url(#aq)" stroke-opacity="0.35" stroke-width="3"/>
+  <line x1="960" y1="960" x2="804" y2="960" stroke="url(#g)"  stroke-opacity="0.35" stroke-width="3"/>
+  <line x1="960" y1="960" x2="960" y2="804" stroke="url(#g)"  stroke-opacity="0.35" stroke-width="3"/>
 
-  <!-- Floating slices — bloat leaving. -->
-  <g transform="rotate(-3 760 320)" filter="url(#bsliceglow)">
-    <path d="M 700 280 L 870 280 L 902 320 L 700 320 Z" fill="url(#bbg)" opacity="0.78"/>
-  </g>
-  <g transform="rotate(-7 800 240) translate(40 -8)" filter="url(#bsliceglow)">
-    <path d="M 720 220 L 870 220 L 894 248 L 720 248 Z" fill="url(#bbg)" opacity="0.55"/>
-  </g>
-  <g transform="rotate(-12 820 184) translate(80 -22)" filter="url(#bsliceglow)">
-    <path d="M 750 168 L 858 168 L 876 188 L 750 188 Z" fill="url(#bbg)" opacity="0.35"/>
-  </g>
-  <g transform="rotate(-18 850 132) translate(120 -38)" filter="url(#bsliceglow)">
-    <path d="M 776 122 L 848 122 L 860 138 L 776 138 Z" fill="url(#bbg)" opacity="0.20"/>
+  <!-- ── Particles — 8 squares only (down from 14), unified +28° vector
+       from (760, 240) toward (1040, -40). Opacity decay 0.85 → 0.15. -->
+  <g fill="#55FFFF">
+    <rect x="780" y="232" width="7" height="7" rx="0.5" opacity="0.85"/>
+    <rect x="824" y="200" width="6" height="6" opacity="0.72"/>
+    <rect x="864" y="170" width="5" height="5" opacity="0.60"/>
+    <rect x="902" y="142" width="5" height="5" opacity="0.48"/>
+    <rect x="938" y="116" width="4" height="4" opacity="0.36"/>
+    <rect x="970" y="92"  width="4" height="4" opacity="0.26"/>
+    <rect x="998" y="70"  width="3" height="3" opacity="0.18"/>
+    <rect x="1018" y="50" width="3" height="3" opacity="0.12"/>
   </g>
 
-  <!-- Bubble body. -->
-  <g filter="url(#bshadow)">
-    <path d="M 332 200
-             L 688 200
-             L 864 568
-             A 168 168 0 0 1 696 736
-             L 412 736
-             L 308 832
-             L 332 736
-             L 296 736
-             A 168 168 0 0 1 128 568
-             L 128 368
-             A 168 168 0 0 1 296 200 Z"
-          fill="url(#bbg)"/>
+  <!-- ── Wedge C — smallest, furthest. -->
+  <g transform="rotate(-22 980 55)" filter="url(#gl2)">
+    <polygon points="940,20 1020,0 1024,90 970,110" fill="url(#wd)" opacity="0.55"/>
+    <line x1="940" y1="20" x2="970" y2="110" stroke="#55FFFF" stroke-opacity="0.70" stroke-width="1.5"/>
+  </g>
+
+  <!-- ── Wedge B — medium, drifting up-right. -->
+  <g transform="rotate(-14 900 130) translate(24 -16)" filter="url(#gl2)">
+    <polygon points="820,90 980,60 1000,170 860,200" fill="url(#wd)" opacity="0.78"/>
+    <line x1="820" y1="90" x2="860" y2="200" stroke="#55FFFF" stroke-opacity="0.75" stroke-width="1.8"/>
+  </g>
+
+  <!-- ── Wedge A — largest, closest to the cut. -->
+  <g transform="rotate(-8 810 235)" filter="url(#gl2)">
+    <polygon points="700,180 880,140 920,260 740,290" fill="url(#wd)"/>
+    <line x1="700" y1="180" x2="740" y2="290" stroke="#55FFFF" stroke-opacity="0.85" stroke-width="2.2"/>
+  </g>
+
+  <!-- ── BUBBLE BODY (universal messenger silhouette, blurple-restored). -->
+  <g filter="url(#bsh)">
+    <path d="M 144 170
+             H 784 a96 96 0 0 1 96 96
+             V 610 a96 96 0 0 1 -96 96
+             H 324
+             L 260 880
+             L 260 706
+             H 240 a96 96 0 0 1 -96 -96
+             V 266 a96 96 0 0 1 96 -96 Z"
+          fill="url(#m)"/>
   </g>
   <g clip-path="url(#bclip)">
-    <rect x="0" y="0" width="1024" height="500" fill="url(#bhi)"/>
-    <rect x="0" y="500" width="1024" height="500" fill="url(#bsh)"/>
+    <rect x="0" y="0" width="1024" height="450" fill="url(#hi)"/>
+    <rect x="0" y="500" width="1024" height="500" fill="url(#sh)"/>
   </g>
 
-  <!-- Aqua cut-edge plasma. -->
-  <g filter="url(#bglow)">
-    <line x1="688" y1="200" x2="864" y2="568"
-          stroke="url(#bcut)" stroke-width="20" stroke-linecap="round"/>
+  <!-- ── Diagonal cut — bubble top through right-bracket area. -->
+  <g filter="url(#gl)">
+    <line x1="700" y1="220" x2="1000" y2="380"
+          stroke="url(#aq)" stroke-width="20" stroke-linecap="round"/>
   </g>
-  <line x1="688" y1="200" x2="864" y2="568"
-        stroke="#e5fdff" stroke-width="4" stroke-linecap="round" stroke-opacity="0.9"/>
+  <line x1="700" y1="220" x2="1000" y2="380"
+        stroke="#E8FFFF" stroke-width="4" stroke-linecap="round" stroke-opacity="0.92"/>
 
-  <!-- Gold [++] bracket. -->
-  <g transform="translate(255 540)" filter="url(#bglow)">
-    <path d="M 0 0 L 24 0 L 24 14 L 14 14 L 14 86 L 24 86 L 24 100 L 0 100 Z" fill="url(#bgld)"/>
-    <g transform="translate(36 18)">
-      <rect x="14" y="0"  width="10" height="64" fill="url(#bgld)" rx="2"/>
-      <rect x="0"  y="27" width="38" height="10" fill="url(#bgld)" rx="2"/>
-      <rect x="62" y="0"  width="10" height="64" fill="url(#bgld)" rx="2"/>
-      <rect x="48" y="27" width="38" height="10" fill="url(#bgld)" rx="2"/>
-    </g>
-    <path d="M 152 0 L 128 0 L 128 14 L 138 14 L 138 86 L 128 86 L 128 100 L 152 100 Z" fill="url(#bgld)"/>
+  <!-- ── LEFT BRACKET [ — structural frame, no glow (clean read). -->
+  <g fill="url(#g)">
+    <rect x="92" y="180" width="32" height="640"/>
+    <rect x="92" y="180" width="64" height="40"/>
+    <rect x="92" y="780" width="64" height="40"/>
+  </g>
+
+  <!-- ── RIGHT BRACKET ] — mirrored, ablated below y=380 by the cut. -->
+  <g clip-path="url(#cutClip)" fill="url(#g)">
+    <rect x="900" y="180" width="32" height="640"/>
+    <rect x="868" y="780" width="64" height="40"/>
+  </g>
+  <!-- Aqua rim-light on the severed edge — sells the cut as causal. -->
+  <line x1="900" y1="380" x2="932" y2="380" stroke="#55FFFF" stroke-opacity="0.85" stroke-width="2.5"/>
+
+  <!-- ── ONE confident [++] glyph inside the bubble, bottom-left.
+       Reads as a chat-token in the message canvas, not a label. -->
+  <g transform="translate(260 720)" filter="url(#gl)">
+    <!-- horizontal stroke of first + -->
+    <rect x="0"  y="40" width="40" height="16" rx="3" fill="url(#g)"/>
+    <!-- vertical stroke of first + -->
+    <rect x="12" y="16" width="16" height="64" rx="3" fill="url(#g)"/>
+    <!-- horizontal stroke of second + -->
+    <rect x="56" y="40" width="40" height="16" rx="3" fill="url(#g)"/>
+    <!-- vertical stroke of second + -->
+    <rect x="68" y="16" width="16" height="64" rx="3" fill="url(#g)"/>
   </g>
 </svg>
