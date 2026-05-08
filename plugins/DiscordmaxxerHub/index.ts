@@ -238,7 +238,7 @@ interface QuickToggle {
 }
 
 const QUICK_TOGGLES: QuickToggle[] = [
-    { plugin: "VideoBackground", label: "🌟 Video Background", settingKey: "enable", minTier: Tier.MAXXER_PLUS, note: "Set URL in Vencord plugin settings" },
+    { plugin: "VideoBackground", label: "🌟 Video Background", settingKey: "enable", minTier: Tier.MAXXER_PLUS, note: "Set URL in Discordmaxxer plugin settings" },
     { plugin: "DiscordmaxxerTheme", label: "🎨 Maxxer Theme", settingKey: "enable" },
     { plugin: "TournamentMode", label: "🎮 Tournament Mode (Ctrl+Alt+T)" },
     { plugin: "CompactView", label: "📐 Compact View (Ctrl+Alt+H)" },
@@ -333,7 +333,7 @@ function renderPanelHTML(): string {
             <button class="dm-hub-action-btn" data-action="reload-renderer">Reload</button>
         </div>
         <div class="dm-hub-info">Use this if Discord starts feeling sluggish after hours of uptime. Login state survives.</div>
-        <div class="dm-hub-footer">Full settings → Discord settings → Vencord → Plugins</div>
+        <div class="dm-hub-footer">Full settings → Discord settings → Discordmaxxer → Plugins</div>
     </div>`;
 }
 

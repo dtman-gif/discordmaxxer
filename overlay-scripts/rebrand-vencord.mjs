@@ -408,6 +408,28 @@ const PATCHES = [
         file: "src/components/settings/tabs/plugins/index.tsx",
         find: '? "This plugin is required for Vencord to function."',
         replace: '? "This plugin is required for Discordmaxxer to function."'
+    },
+
+    // ── Round 3 (rc6 testing) ──
+    // Notifications panel description
+    {
+        file: "src/components/settings/tabs/vencord/NotificationSettings.tsx",
+        find: 'Settings for Notifications sent by Vencord.',
+        replace: 'Settings for Notifications sent by Discordmaxxer.'
+    },
+    // Cloud tab — strip the vencord.dev privacy-policy + Vencord/Backend repo
+    // links from the description paragraph. Keeps the cloud feature functional
+    // (default URL still points at api.vencord.dev which actually operates the
+    // backend) but removes user-visible vencord branding from the help text.
+    {
+        file: "src/components/settings/tabs/sync/CloudTab.tsx",
+        find:
+            '                It <Link href="https://vencord.dev/cloud/privacy">respects your privacy</Link>, and\n' +
+            '                the <Link href="https://github.com/Vencord/Backend">source code</Link> is AGPL 3.0 licensed so you\n' +
+            '                can host it yourself.',
+        replace:
+            '                The backend infrastructure is operated by the upstream plugin engine team\n' +
+            '                (AGPL 3.0, self-hostable). Disable below if you want zero outbound cloud calls.'
     }
 ];
 
