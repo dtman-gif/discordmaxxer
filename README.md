@@ -12,11 +12,11 @@ A standalone Discord client with 30+ client-side enhancements pre-enabled, custo
 
 ## What it is
 
-A fork of [Vesktop](https://github.com/Vencord/Vesktop) (which itself bundles [Vencord](https://github.com/Vendicated/Vencord)). Single download, no official Discord install needed. Ships with sensible defaults, original plugins, and a clean rebrand.
+A standalone Discord-optimized client built on a forked plugin engine. Single download, no official Discord install needed. Ships with sensible defaults, original plugins, and a clean rebrand. Upstream credits in [NOTICE.md](NOTICE.md) per GPL-3.
 
 ## Headline features
 
-- **30+ Vencord plugins enabled by default** — FakeNitro, MessageLogger (see deleted), ClearURLs, ClientTheme, FriendsSince, ImageZoom, TypingTweaks, RelationshipNotifier, SilentTyping, GifPaste, VolumeBooster, BetterFolders, BetterSettings, MentionAvatars, PinDMs, ReadAllNotificationsButton, TextReplace, ThemeLibrary, WebKeybinds, WebScreenShareFix, and more.
+- **30+ third-party plugins enabled by default** — FakeNitro, MessageLogger (see deleted), ClearURLs, ClientTheme, FriendsSince, ImageZoom, TypingTweaks, RelationshipNotifier, SilentTyping, GifPaste, VolumeBooster, BetterFolders, BetterSettings, MentionAvatars, PinDMs, ReadAllNotificationsButton, TextReplace, ThemeLibrary, WebKeybinds, WebScreenShareFix, and more.
 - **TournamentMode** (custom) — global hotkey kills animations, RPC, badge polling, and voice noise-suppression for low-input-delay competitive sessions.
 - **CompactView** (custom) — hotkey to hide server list, channels, and member sidebar. Optional auto-hide on screenshare. For vertical-monitor users.
 - **MassDelete** (custom, opt-in) — bulk-delete your own messages with rate-limiting and ban-risk warnings.
@@ -37,8 +37,8 @@ pnpm package        # produces installers in dist/
 
 ## License + attribution
 
-GPL-3.0-or-later. This is a fork of Vesktop (GPL-3.0). See [NOTICE.md](NOTICE.md) for full upstream credits.
+GPL-3.0-or-later. Forked from upstream GPL-3 projects. See [NOTICE.md](NOTICE.md) for full credits + commit lineage.
 
 ## Risk disclaimer
 
-Client-modding Discord violates Discord's ToS. Enforcement is rare for personal use of plugin-based clients (Vencord has ~1M users). MassDelete carries higher risk — gated, rate-limited, opt-in for that reason. Use at your own discretion.
+Client-modding Discord violates Discord's ToS. Enforcement is rare for personal use of plugin-based clients (similar tools have shipped to hundreds of thousands of users without mass-ban events). MassDelete carries higher risk — gated, rate-limited, opt-in for that reason. Use at your own discretion.

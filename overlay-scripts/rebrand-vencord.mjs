@@ -430,6 +430,64 @@ const PATCHES = [
         replace:
             '                The backend infrastructure is operated by the upstream plugin engine team\n' +
             '                (AGPL 3.0, self-hostable). Disable below if you want zero outbound cloud calls.'
+    },
+
+    // ── Round 4: full Vencord-name strip (user said "0 mention") ──────
+    // Slash-command error toast pseudo-username
+    {
+        file: "src/api/Commands/index.ts",
+        find: 'username: "Vencord"',
+        replace: 'username: "Discordmaxxer"'
+    },
+    // Contributor modal — strip the "vencord.dev/source" link target
+    {
+        file: "src/components/settings/tabs/plugins/ContributorModal.tsx",
+        find: '<Link href="https://vencord.dev/source">contributed</Link>',
+        replace: '<Link href="https://github.com/MaxxTopia/discordmaxxer/graphs/contributors">contributed</Link>'
+    },
+    // Plugin info modal — strip the "vencord.dev/plugins/<name>" "More info" button
+    {
+        file: "src/components/settings/tabs/plugins/PluginModal.tsx",
+        find: 'href={`https://vencord.dev/plugins/${plugin.name}`}',
+        replace: 'href={`https://github.com/MaxxTopia/discordmaxxer/blob/main/vencord-src/src/plugins/${plugin.name}`}'
+    },
+    // CSP host-permission dialog title
+    {
+        file: "src/main/csp/manager.ts",
+        find: 'title: "Vencord Host Permissions",',
+        replace: 'title: "Discordmaxxer Host Permissions",'
+    },
+    // Monaco QuickCSS editor window title (used to find existing window)
+    {
+        file: "src/main/ipcMain.ts",
+        find: 'const title = "Vencord QuickCSS Editor";',
+        replace: 'const title = "Discordmaxxer QuickCSS Editor";'
+    },
+
+    // ── Round 5: plugin description fields visible in the Plugins tab ─
+    // textReplace: "in Vencord's Server" Discord channel reference
+    {
+        file: "src/plugins/textReplace/index.tsx",
+        find: 'description: "Replace text in your messages. You can find pre-made rules in the #textreplace-rules channel in Vencord\'s Server",',
+        replace: 'description: "Replace text in your messages with custom rules.",'
+    },
+    // vencordToolbox: "Vencord quick actions"
+    {
+        file: "src/plugins/vencordToolbox/index.tsx",
+        find: 'description: "Adds a button to the titlebar that houses Vencord quick actions",',
+        replace: 'description: "Adds a button to the titlebar that houses Discordmaxxer quick actions",'
+    },
+    // webScreenShareFixes.web: "vesktop clients"
+    {
+        file: "src/plugins/webScreenShareFixes.web/index.ts",
+        find: 'description: "Removes 2500kbps bitrate cap on chromium and vesktop clients.",',
+        replace: 'description: "Removes 2500kbps bitrate cap on chromium-based and Electron clients.",'
+    },
+    // Badges: "Vencord Contributor" badge title
+    {
+        file: "src/plugins/_api/badges/index.tsx",
+        find: 'description: "Vencord Contributor",',
+        replace: 'description: "Plugin Engine Contributor",'
     }
 ];
 
