@@ -1,131 +1,200 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <!--
-    Discordmaxxer — bullet-hole take.
-    Apple squircle chassis (same as OM), but in a discreet navy-indigo blend
-    (Discord-derived, dramatically aged-up) instead of OM's loud magenta.
-    Single focal subject: a white Discord-style circle with 4 bullet holes
-    punched through, crack lines radiating from each. The brand promise
-    rendered literally — Discord, perforated.
+    Discordmaxxer — Clyde, horned + perforated.
+    Discord's actual mascot face on Discord's actual blurple squircle, then
+    two 😈-style devil horns punched up through the top, then 6 bullet
+    holes with 50 Cent "Get Rich or Die Tryin'" spider-web crack patterns
+    blown across the face. The brand promise rendered as kinetic damage.
   -->
   <defs>
-    <!-- Discreet blend: deepened Discord blurple → midnight. Keeps the
-         brand lineage but feels premium / stealth instead of loud. -->
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#3a4178"/>
-      <stop offset="35%"  stop-color="#2a3168"/>
-      <stop offset="70%"  stop-color="#1a2150"/>
-      <stop offset="100%" stop-color="#0d1338"/>
+    <!-- Discord blurple bg — copied straight from Discord's brand. -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#7d8aff"/>
+      <stop offset="50%"  stop-color="#5865F2"/>
+      <stop offset="100%" stop-color="#4651cf"/>
     </linearGradient>
     <!-- Apple top specular. -->
     <linearGradient id="hi" x1="50%" y1="0%" x2="50%" y2="55%">
-      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.26"/>
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
     <!-- Bottom shade. -->
     <linearGradient id="bottomShade" x1="50%" y1="60%" x2="50%" y2="100%">
       <stop offset="0%"   stop-color="#000000" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.22"/>
     </linearGradient>
-    <!-- White circle face — same dimensional gradient pattern as OM. -->
-    <linearGradient id="faceFill" x1="50%" y1="0%" x2="50%" y2="100%">
+    <!-- Clyde face fill — clean white. -->
+    <linearGradient id="face" x1="50%" y1="0%" x2="50%" y2="100%">
       <stop offset="0%"   stop-color="#ffffff"/>
-      <stop offset="55%"  stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#e9ecf5"/>
+      <stop offset="100%" stop-color="#eaecf5"/>
     </linearGradient>
-    <!-- Bullet hole gradient — dark ring, deeper center (lit from above). -->
-    <radialGradient id="holeFill" cx="50%" cy="38%" r="55%">
-      <stop offset="0%"   stop-color="#1a2150"/>
-      <stop offset="60%"  stop-color="#0a0e1a"/>
+    <!-- Devil horn fill — dark purple, like the 😈 emoji. -->
+    <linearGradient id="horn" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#5b1c8c"/>
+      <stop offset="100%" stop-color="#3a1259"/>
+    </linearGradient>
+    <!-- Bullet hole — black core, slight ring. -->
+    <radialGradient id="hole" cx="45%" cy="40%" r="60%">
+      <stop offset="0%"   stop-color="#1a1a1a"/>
+      <stop offset="55%"  stop-color="#0a0a0a"/>
       <stop offset="100%" stop-color="#000000"/>
     </radialGradient>
-    <!-- Drop shadow under the face. -->
+    <!-- Drop shadow under face. -->
     <filter id="faceShadow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.45"/>
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#1a1252" flood-opacity="0.45"/>
     </filter>
-    <!-- Inner shadow on holes (gives depth — "punched through"). -->
-    <filter id="holeInner" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur stdDeviation="2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <!-- Drop shadow under horns. -->
+    <filter id="hornShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#1a0040" flood-opacity="0.5"/>
     </filter>
   </defs>
 
   <!-- Outer transparent canvas. -->
   <rect width="1024" height="1024" fill="transparent"/>
 
-  <!-- Apple squircle bg. -->
+  <!-- Apple squircle bg in Discord blurple. -->
   <rect x="64" y="64" width="896" height="896" rx="220" ry="220" fill="url(#bg)"/>
   <rect x="64" y="64" width="896" height="896" rx="220" ry="220" fill="url(#hi)"/>
   <rect x="64" y="64" width="896" height="896" rx="220" ry="220" fill="url(#bottomShade)"/>
   <rect x="65" y="65" width="894" height="894" rx="219" ry="219"
-        fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
+        fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="2"/>
 
-  <!-- Speed accent lines, top-right (suite-canon). Slightly dimmer here for
-       the discreet palette. -->
-  <g stroke="#ffffff" stroke-opacity="0.16" stroke-linecap="round" fill="none">
-    <line x1="772" y1="208" x2="868" y2="252" stroke-width="14"/>
-    <line x1="792" y1="288" x2="864" y2="320" stroke-width="11"/>
-    <line x1="810" y1="356" x2="858" y2="378" stroke-width="9"/>
+  <!-- ── DEVIL HORNS — two curved triangles emerging from behind the face,
+       mimic 😈 emoji shape (wider base, curved point). Drawn BEFORE the
+       face so they appear to grow from behind the head. -->
+  <g filter="url(#hornShadow)">
+    <!-- Left horn: curves up + slightly left. -->
+    <path d="M 366 252
+             Q 348 168 320 110
+             Q 312 100 304 108
+             Q 308 144 326 192
+             Q 348 232 366 252 Z"
+          fill="url(#horn)"/>
+    <!-- Right horn: mirror. -->
+    <path d="M 658 252
+             Q 676 168 704 110
+             Q 712 100 720 108
+             Q 716 144 698 192
+             Q 676 232 658 252 Z"
+          fill="url(#horn)"/>
   </g>
 
-  <!-- ── THE FACE — Discord-style circle, white, drop-shadowed for lift. -->
+  <!-- ── CLYDE FACE — Discord's mascot silhouette: rounded blob top, two
+       small "feet" on the bottom corners, two vertical-oval eyes cut out.
+       Approximates Discord's actual logo proportions. -->
   <g filter="url(#faceShadow)">
-    <circle cx="512" cy="512" r="252" fill="url(#faceFill)"/>
+    <path d="M 264 380
+             C 264 230, 376 174, 512 174
+             C 648 174, 760 230, 760 380
+             L 760 600
+             C 760 638, 738 678, 696 678
+             L 656 678
+             C 656 632, 636 604, 608 604
+             C 580 604, 560 632, 560 678
+             L 464 678
+             C 464 632, 444 604, 416 604
+             C 388 604, 368 632, 368 678
+             L 328 678
+             C 286 678, 264 638, 264 600 Z"
+          fill="url(#face)"/>
   </g>
 
-  <!-- ── BULLET HOLES — punched through the face, with crack lines.
-       4 holes total: a centred "headshot" (largest), three off-center.
-       Each hole = a dark gradient circle + jagged crack lines radiating
-       in white-low-opacity (read as paint chips around the impact). -->
+  <!-- ── EYES — vertical ovals filled with blurple (cut-out effect). -->
+  <ellipse cx="420" cy="372" rx="48" ry="68" fill="#5865F2"/>
+  <ellipse cx="604" cy="372" rx="48" ry="68" fill="#5865F2"/>
 
-  <!-- Hole 1: upper-left, medium. -->
+  <!-- ── BULLET HOLES — 6 holes scattered across the face with 50-Cent
+       spider-web crack patterns. Each = small dark circle + 6-8 jagged
+       cracks fanning outward + 2-3 secondary branch cracks. -->
+
+  <!-- Hole 1: forehead, right of center, MEDIUM. -->
   <g>
-    <circle cx="430" cy="414" r="22" fill="url(#holeFill)"/>
-    <circle cx="430" cy="414" r="22" fill="none" stroke="#e9ecf5" stroke-opacity="0.4" stroke-width="2"/>
-    <!-- crack lines -->
-    <g stroke="#a0a8c0" stroke-opacity="0.55" stroke-linecap="round" fill="none">
-      <line x1="430" y1="392" x2="416" y2="368" stroke-width="1.8"/>
-      <line x1="430" y1="392" x2="442" y2="370" stroke-width="1.4"/>
-      <line x1="408" y1="416" x2="378" y2="404" stroke-width="1.8"/>
-      <line x1="452" y1="416" x2="478" y2="402" stroke-width="1.4"/>
-      <line x1="430" y1="436" x2="426" y2="468" stroke-width="1.6"/>
+    <!-- spider-web cracks (drawn first so circle covers their roots) -->
+    <g stroke="#3d3d54" stroke-opacity="0.7" stroke-linecap="round" fill="none">
+      <line x1="568" y1="232" x2="556" y2="190" stroke-width="1.6"/>
+      <line x1="568" y1="232" x2="588" y2="194" stroke-width="1.4"/>
+      <line x1="546" y1="252" x2="510" y2="250" stroke-width="1.6"/>
+      <line x1="590" y1="252" x2="624" y2="246" stroke-width="1.5"/>
+      <line x1="568" y1="272" x2="572" y2="306" stroke-width="1.4"/>
+      <line x1="556" y1="266" x2="540" y2="298" stroke-width="1.2"/>
+      <!-- secondary branches -->
+      <line x1="556" y1="190" x2="544" y2="172" stroke-width="0.9"/>
+      <line x1="624" y1="246" x2="650" y2="240" stroke-width="0.9"/>
     </g>
+    <circle cx="568" cy="252" r="14" fill="url(#hole)"/>
+    <circle cx="568" cy="252" r="14" fill="none" stroke="#0a0a0a" stroke-opacity="0.5" stroke-width="1.2"/>
   </g>
 
-  <!-- Hole 2: centred-right, LARGEST (the headshot). -->
+  <!-- Hole 2: cheek (left of left eye), LARGE — the "headshot". -->
   <g>
-    <circle cx="582" cy="498" r="32" fill="url(#holeFill)"/>
-    <circle cx="582" cy="498" r="32" fill="none" stroke="#e9ecf5" stroke-opacity="0.45" stroke-width="2.2"/>
-    <g stroke="#a0a8c0" stroke-opacity="0.6" stroke-linecap="round" fill="none">
-      <line x1="582" y1="466" x2="568" y2="430" stroke-width="2"/>
-      <line x1="582" y1="466" x2="600" y2="424" stroke-width="2.2"/>
-      <line x1="550" y1="498" x2="510" y2="488" stroke-width="2"/>
-      <line x1="614" y1="498" x2="654" y2="490" stroke-width="2.2"/>
-      <line x1="582" y1="530" x2="572" y2="572" stroke-width="2"/>
-      <line x1="582" y1="530" x2="610" y2="568" stroke-width="1.6"/>
-      <line x1="558" y1="476" x2="528" y2="450" stroke-width="1.4"/>
+    <g stroke="#3d3d54" stroke-opacity="0.78" stroke-linecap="round" fill="none">
+      <line x1="316" y1="464" x2="288" y2="430" stroke-width="2.2"/>
+      <line x1="316" y1="464" x2="296" y2="408" stroke-width="2"/>
+      <line x1="290" y1="486" x2="252" y2="478" stroke-width="2.2"/>
+      <line x1="290" y1="486" x2="244" y2="500" stroke-width="1.8"/>
+      <line x1="316" y1="510" x2="306" y2="554" stroke-width="2"/>
+      <line x1="338" y1="510" x2="356" y2="546" stroke-width="2"/>
+      <line x1="338" y1="486" x2="362" y2="476" stroke-width="1.6"/>
+      <line x1="338" y1="464" x2="356" y2="436" stroke-width="1.6"/>
+      <!-- secondary branches -->
+      <line x1="288" y1="430" x2="270" y2="416" stroke-width="1"/>
+      <line x1="296" y1="408" x2="280" y2="384" stroke-width="1"/>
+      <line x1="244" y1="500" x2="218" y2="510" stroke-width="1"/>
     </g>
+    <circle cx="318" cy="488" r="20" fill="url(#hole)"/>
+    <circle cx="318" cy="488" r="20" fill="none" stroke="#0a0a0a" stroke-opacity="0.55" stroke-width="1.4"/>
   </g>
 
-  <!-- Hole 3: lower-left. -->
+  <!-- Hole 3: between the eyes, SMALL — close-quarters shot. -->
   <g>
-    <circle cx="468" cy="606" r="18" fill="url(#holeFill)"/>
-    <circle cx="468" cy="606" r="18" fill="none" stroke="#e9ecf5" stroke-opacity="0.4" stroke-width="1.8"/>
-    <g stroke="#a0a8c0" stroke-opacity="0.5" stroke-linecap="round" fill="none">
-      <line x1="468" y1="588" x2="462" y2="566" stroke-width="1.4"/>
-      <line x1="450" y1="608" x2="424" y2="604" stroke-width="1.4"/>
-      <line x1="486" y1="608" x2="510" y2="618" stroke-width="1.4"/>
-      <line x1="468" y1="624" x2="466" y2="650" stroke-width="1.4"/>
+    <g stroke="#3d3d54" stroke-opacity="0.7" stroke-linecap="round" fill="none">
+      <line x1="512" y1="350" x2="510" y2="320" stroke-width="1.4"/>
+      <line x1="498" y1="362" x2="478" y2="350" stroke-width="1.2"/>
+      <line x1="526" y1="362" x2="546" y2="352" stroke-width="1.2"/>
+      <line x1="512" y1="376" x2="514" y2="406" stroke-width="1.4"/>
     </g>
+    <circle cx="512" cy="362" r="10" fill="url(#hole)"/>
+    <circle cx="512" cy="362" r="10" fill="none" stroke="#0a0a0a" stroke-opacity="0.45" stroke-width="1"/>
   </g>
 
-  <!-- Hole 4: lower-right, smallest. -->
+  <!-- Hole 4: right side, mid-face, MEDIUM. -->
   <g>
-    <circle cx="630" cy="586" r="14" fill="url(#holeFill)"/>
-    <circle cx="630" cy="586" r="14" fill="none" stroke="#e9ecf5" stroke-opacity="0.35" stroke-width="1.6"/>
-    <g stroke="#a0a8c0" stroke-opacity="0.45" stroke-linecap="round" fill="none">
-      <line x1="630" y1="572" x2="638" y2="554" stroke-width="1.2"/>
-      <line x1="616" y1="586" x2="600" y2="582" stroke-width="1.2"/>
-      <line x1="644" y1="586" x2="660" y2="592" stroke-width="1.2"/>
+    <g stroke="#3d3d54" stroke-opacity="0.72" stroke-linecap="round" fill="none">
+      <line x1="708" y1="450" x2="730" y2="416" stroke-width="1.8"/>
+      <line x1="708" y1="450" x2="744" y2="436" stroke-width="1.6"/>
+      <line x1="688" y1="470" x2="664" y2="464" stroke-width="1.6"/>
+      <line x1="708" y1="490" x2="724" y2="524" stroke-width="1.8"/>
+      <line x1="688" y1="490" x2="660" y2="510" stroke-width="1.4"/>
+      <line x1="730" y1="478" x2="752" y2="486" stroke-width="1.4"/>
+      <!-- secondary -->
+      <line x1="744" y1="436" x2="762" y2="426" stroke-width="0.9"/>
     </g>
+    <circle cx="710" cy="470" r="15" fill="url(#hole)"/>
+    <circle cx="710" cy="470" r="15" fill="none" stroke="#0a0a0a" stroke-opacity="0.5" stroke-width="1.2"/>
+  </g>
+
+  <!-- Hole 5: lower-left, between eye and left foot, SMALL-MED. -->
+  <g>
+    <g stroke="#3d3d54" stroke-opacity="0.68" stroke-linecap="round" fill="none">
+      <line x1="396" y1="552" x2="380" y2="528" stroke-width="1.4"/>
+      <line x1="380" y1="568" x2="350" y2="566" stroke-width="1.4"/>
+      <line x1="396" y1="584" x2="392" y2="612" stroke-width="1.4"/>
+      <line x1="412" y1="568" x2="436" y2="572" stroke-width="1.2"/>
+      <line x1="412" y1="552" x2="430" y2="538" stroke-width="1"/>
+    </g>
+    <circle cx="396" cy="568" r="11" fill="url(#hole)"/>
+    <circle cx="396" cy="568" r="11" fill="none" stroke="#0a0a0a" stroke-opacity="0.45" stroke-width="1"/>
+  </g>
+
+  <!-- Hole 6: chin / lower-center, SMALL. -->
+  <g>
+    <g stroke="#3d3d54" stroke-opacity="0.65" stroke-linecap="round" fill="none">
+      <line x1="498" y1="640" x2="486" y2="618" stroke-width="1.2"/>
+      <line x1="486" y1="650" x2="464" y2="650" stroke-width="1.2"/>
+      <line x1="510" y1="650" x2="528" y2="660" stroke-width="1.2"/>
+      <line x1="498" y1="660" x2="500" y2="676" stroke-width="1.1"/>
+    </g>
+    <circle cx="498" cy="650" r="9" fill="url(#hole)"/>
+    <circle cx="498" cy="650" r="9" fill="none" stroke="#0a0a0a" stroke-opacity="0.45" stroke-width="0.9"/>
   </g>
 </svg>
