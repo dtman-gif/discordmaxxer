@@ -39,8 +39,8 @@ jobs:
             # exist on disk; it's gitignored and not in our repo, so clone it
             # here at the pinned tag. If you bump the pinned version, also
             # update the local vencord-src checkout so patches stay in sync.
-            - name: Clone Vencord at pinned tag (v1.14.12)
-              run: git clone --depth 1 --branch v1.14.12 https://github.com/Vendicated/Vencord.git vencord-src
+            - name: Clone Vencord at pinned tag (v1.14.13)
+              run: git clone --depth 1 --branch v1.14.13 https://github.com/Vendicated/Vencord.git vencord-src
 
             - name: Install Vencord deps
               working-directory: vencord-src
