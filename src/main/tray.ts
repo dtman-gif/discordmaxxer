@@ -53,7 +53,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
             click: createAboutWindow
         },
         {
-            label: "Repair Vencord",
+            label: "Repair Plugin Engine",
             async click() {
                 await downloadVencordFiles();
                 app.relaunch();
@@ -61,7 +61,7 @@ export async function initTray(win: BrowserWindow, setIsQuitting: (val: boolean)
             }
         },
         {
-            label: "Reset Vesktop",
+            label: "Reset Discordmaxxer",
             async click() {
                 await clearData(win);
             }

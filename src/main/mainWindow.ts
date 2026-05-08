@@ -77,11 +77,11 @@ function initMenuBar(win: BrowserWindow) {
 
     const subMenu = [
         {
-            label: "About Vesktop",
+            label: "About Discordmaxxer",
             click: createAboutWindow
         },
         {
-            label: "Force Update Vencord",
+            label: "Force Update Plugin Engine",
             async click() {
                 await downloadVencordFiles();
                 app.relaunch();
