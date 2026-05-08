@@ -1,12 +1,19 @@
 {
     "version": 1,
-    "issuedAt": "2026-05-07T15:00:00Z",
+    "issuedAt": "2026-05-08T05:30:00Z",
     "users": {
         "1501342589318594625": {
             "tier": 3,
             "via": "owner",
             "grantedAt": "2026-05-06T00:00:00Z",
             "expiresAt": null
+        },
+        "426146621424664586": {
+            "tier": 2,
+            "via": "grant",
+            "grantedAt": "2026-05-08T05:30:00Z",
+            "expiresAt": null,
+            "grantedBy": "1501342589318594625"
         }
     }
 }
