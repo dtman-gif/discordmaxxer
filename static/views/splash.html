@@ -38,33 +38,23 @@
             justify-content: center;
         }
 
-        /* Inline mark — lightning-bolt version of build/icon.svg. */
+        /* Inline mark — chat-bubble + signal-bars (build/icon.svg). The SVG
+           brings its own circular face, gradient, glow, magenta seam, and
+           ascending bars. We just give it a 128x128 stage. */
         .dm-mark {
             width: 128px;
             height: 128px;
-            border-radius: 28px;
-            background: linear-gradient(135deg, #f37bff 0%, #e25bff 35%, #7d51f7 70%, #4c51f7 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.2) inset, 0 8px 32px rgba(226,91,255,0.35);
             position: relative;
-            overflow: hidden;
+            border-radius: 50%;
+            filter: drop-shadow(0 8px 32px rgba(76, 81, 247, 0.5));
         }
-        .dm-mark::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: 28px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 55%);
-            pointer-events: none;
-        }
-        .dm-mark svg {
-            width: 78px;
-            height: 78px;
-            filter: drop-shadow(0 4px 8px rgba(26,0,40,0.4));
-            position: relative;
-            z-index: 1;
+        .dm-mark img {
+            width: 128px;
+            height: 128px;
+            display: block;
         }
 
         .ripple {
@@ -98,18 +88,17 @@
         /* Effect 1 — pulse */
         .effect-pulse .dm-mark { animation: dm-pulse 1.4s ease-in-out infinite; }
         @keyframes dm-pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 8px 32px rgba(226,91,255,0.35); }
-            50%      { transform: scale(1.06); box-shadow: 0 0 0 1px rgba(255,255,255,0.25) inset, 0 12px 48px rgba(226,91,255,0.6); }
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 8px 32px rgba(76, 81, 247, 0.5)); }
+            50%      { transform: scale(1.06); filter: drop-shadow(0 12px 48px rgba(226, 91, 255, 0.6)); }
         }
 
-        /* Effect 2 — gradient shift */
-        .effect-gradient .dm-mark {
-            background-size: 200% 200%;
-            animation: dm-gradient 3s ease-in-out infinite;
-        }
-        @keyframes dm-gradient {
-            0%, 100% { background-position: 0% 0%; }
-            50%      { background-position: 100% 100%; }
+        /* Effect 2 — glow shift (was gradient-shift; the new logo has its
+           gradient baked in, so we cycle the drop-shadow glow color instead) */
+        .effect-gradient .dm-mark { animation: dm-glow 3s ease-in-out infinite; }
+        @keyframes dm-glow {
+            0%, 100% { filter: drop-shadow(0 8px 32px rgba(76, 81, 247, 0.5)); }
+            33%      { filter: drop-shadow(0 8px 32px rgba(226, 91, 255, 0.55)); }
+            66%      { filter: drop-shadow(0 8px 32px rgba(125, 81, 247, 0.55)); }
         }
 
         /* Effect 3 — spin-in entrance + slow rotate */
@@ -147,10 +136,10 @@
         /* Effect 6 — chidori (lightning halo flicker) */
         .effect-chidori .dm-mark { animation: dm-chidori 1.6s ease-in-out infinite; }
         @keyframes dm-chidori {
-            0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 0 24px rgba(76,81,247,0.5), 0 0 48px rgba(226,91,255,0.3); }
-            25%      { box-shadow: 0 0 0 1px rgba(255,255,255,0.4) inset, 0 0 64px rgba(76,81,247,1), 0 0 96px rgba(226,91,255,0.7); }
-            50%      { box-shadow: 0 0 0 1px rgba(255,255,255,0.6) inset, 0 0 16px rgba(76,81,247,0.6), 0 0 96px rgba(255,255,255,0.4); }
-            75%      { box-shadow: 0 0 0 1px rgba(255,255,255,0.4) inset, 0 0 64px rgba(76,81,247,1), 0 0 96px rgba(226,91,255,0.7); }
+            0%, 100% { filter: drop-shadow(0 0 24px rgba(76,81,247,0.5)) drop-shadow(0 0 48px rgba(226,91,255,0.3)); }
+            25%      { filter: drop-shadow(0 0 64px rgba(76,81,247,1)) drop-shadow(0 0 96px rgba(226,91,255,0.7)); }
+            50%      { filter: drop-shadow(0 0 16px rgba(76,81,247,0.6)) drop-shadow(0 0 96px rgba(255,255,255,0.4)); }
+            75%      { filter: drop-shadow(0 0 64px rgba(76,81,247,1)) drop-shadow(0 0 96px rgba(226,91,255,0.7)); }
         }
 
         /* Effect 7 — drift float */
@@ -170,9 +159,7 @@
             <div class="ripple"></div>
             <div class="ripple"></div>
             <div class="dm-mark">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14 5 L8 13 L11.5 13 L9.5 19 L16 11 L12.5 11 Z" fill="#ffffff" stroke="#fbe8ff" stroke-width="0.3"/>
-                </svg>
+                <img src="./dm-logo.svg" alt="Discordmaxxer" />
             </div>
         </div>
         <p>Loading Discordmaxxer...</p>

@@ -23,8 +23,16 @@ const FAB_ID = "dm-hub-fab";
 const PANEL_ID = "dm-hub-panel";
 const PANEL_ROOT_ID = "dm-hub-panel-root";
 
-// Lightning-bolt mark — same shape as build/icon.svg, scaled for inline use.
-const HUB_LOGO_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 5 L8 13 L11.5 13 L9.5 19 L16 11 L12.5 11 Z" fill="#ffffff" stroke="#fbe8ff" stroke-width="0.3"/></svg>`;
+// Signal-bars mark — simplified version of build/icon.svg for inline 14x14 use.
+// Three ascending bars on Discord blurple = "max signal" metaphor; readable at
+// FAB-button size where the full chat-bubble logo loses detail.
+const HUB_LOGO_SVG =
+    `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">` +
+    `<rect x="5.5" y="14" width="2.5" height="4" rx="0.5" fill="#ffaaff"/>` +
+    `<rect x="9.5" y="11" width="2.5" height="7" rx="0.5" fill="#c084fc"/>` +
+    `<rect x="13.5" y="7.5" width="2.5" height="10.5" rx="0.5" fill="#ffffff"/>` +
+    `<circle cx="14.75" cy="7.4" r="1" fill="#ff5dff"/>` +
+    `</svg>`;
 
 let panelRoot: HTMLDivElement | null = null;
 let style: HTMLStyleElement;

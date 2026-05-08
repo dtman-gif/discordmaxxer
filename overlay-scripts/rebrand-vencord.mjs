@@ -377,6 +377,37 @@ const PATCHES = [
             '                )\n' +
             '            }',
         replace: '            <DiscordmaxxerVipCard />'
+    },
+
+    // ── Round 2 user-visible Vencord strings caught during rc3 testing ──
+    // CloudTab "Vencord comes with a cloud integration..."
+    {
+        file: "src/components/settings/tabs/sync/CloudTab.tsx",
+        find: 'Vencord comes with a cloud integration that adds goodies like settings sync across devices.',
+        replace: 'Discordmaxxer comes with a cloud integration that adds goodies like settings sync across devices.'
+    },
+    // BackupAndRestoreTab.tsx — both Vencord references on the same panel
+    {
+        file: "src/components/settings/tabs/sync/BackupAndRestoreTab.tsx",
+        find: 'You can import and export your Vencord settings as a JSON file.',
+        replace: 'You can import and export your Discordmaxxer settings as a JSON file.'
+    },
+    {
+        file: "src/components/settings/tabs/sync/BackupAndRestoreTab.tsx",
+        find: 'or recover your settings after reinstalling Vencord or Discord.',
+        replace: 'or recover your settings after reinstalling Discordmaxxer or Discord.'
+    },
+    // ContributorModal "Vencord in other ways"
+    {
+        file: "src/components/settings/tabs/plugins/ContributorModal.tsx",
+        find: 'This person has not made any plugins. They likely {ContributedHyperLink} to Vencord in other ways!',
+        replace: 'This person has not made any plugins. They likely {ContributedHyperLink} to the Vencord engine that powers Discordmaxxer in other ways!'
+    },
+    // Plugins tab "required for Vencord to function"
+    {
+        file: "src/components/settings/tabs/plugins/index.tsx",
+        find: '? "This plugin is required for Vencord to function."',
+        replace: '? "This plugin is required for Discordmaxxer to function."'
     }
 ];
 

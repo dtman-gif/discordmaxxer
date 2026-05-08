@@ -20,19 +20,36 @@ import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { RestAPI, Toasts, UserStore } from "@webpack/common";
 
-// Profile-badge mark — simplified lightning-bolt version of build/icon.svg.
+// Profile-badge mark — simplified signal-bars version of build/icon.svg.
+// Three ascending bars on Discord blurple = "max signal" metaphor.
+// Stays readable at 16x16 badge size where the full chat-bubble logo loses detail.
 // Same brand gradient, no text, optimized for 24x24 rendering in user popouts.
 const BADGE_ICON =
     "data:image/svg+xml;charset=utf-8," +
     encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">` +
-        `<defs><linearGradient id="dmg" x1="0%" y1="0%" x2="100%" y2="100%">` +
-        `<stop offset="0%" stop-color="#f37bff"/>` +
-        `<stop offset="50%" stop-color="#a256fb"/>` +
-        `<stop offset="100%" stop-color="#4c51f7"/>` +
-        `</linearGradient></defs>` +
-        `<rect width="24" height="24" rx="5" fill="url(#dmg)"/>` +
-        `<path d="M14 5 L8 13 L11.5 13 L9.5 19 L16 11 L12.5 11 Z" fill="#ffffff" stroke="#fbe8ff" stroke-width="0.3"/>` +
+        `<defs>` +
+        `<radialGradient id="dmg" cx="35%" cy="32%" r="78%">` +
+        `<stop offset="0%" stop-color="#8a98ff"/>` +
+        `<stop offset="60%" stop-color="#5865F2"/>` +
+        `<stop offset="100%" stop-color="#2c34c4"/>` +
+        `</radialGradient>` +
+        `<linearGradient id="dmb1" x1="50%" y1="0%" x2="50%" y2="100%">` +
+        `<stop offset="0%" stop-color="#ffaaff"/><stop offset="100%" stop-color="#ff5dff"/>` +
+        `</linearGradient>` +
+        `<linearGradient id="dmb2" x1="50%" y1="0%" x2="50%" y2="100%">` +
+        `<stop offset="0%" stop-color="#d0a4ff"/><stop offset="100%" stop-color="#9a5fff"/>` +
+        `</linearGradient>` +
+        `<linearGradient id="dmb3" x1="50%" y1="0%" x2="50%" y2="100%">` +
+        `<stop offset="0%" stop-color="#a5b1ff"/><stop offset="100%" stop-color="#5865F2"/>` +
+        `</linearGradient>` +
+        `</defs>` +
+        `<circle cx="12" cy="12" r="11" fill="url(#dmg)"/>` +
+        `<rect x="5.5" y="14" width="2.5" height="4" rx="0.5" fill="url(#dmb1)"/>` +
+        `<rect x="9.5" y="11" width="2.5" height="7" rx="0.5" fill="url(#dmb2)"/>` +
+        `<rect x="13.5" y="7.5" width="2.5" height="10.5" rx="0.5" fill="url(#dmb3)"/>` +
+        `<circle cx="14.75" cy="7.4" r="1" fill="#ff5dff"/>` +
+        `<circle cx="14.75" cy="7.4" r="0.5" fill="#ffe0ff"/>` +
         `</svg>`
     );
 
