@@ -229,7 +229,8 @@
         "publish": {
             "provider": "github",
             "owner": "dtman-gif",
-            "repo": "discordmaxxer"
+            "repo": "discordmaxxer",
+            "releaseType": "release"
         },
         "rpm": {
             "fpm": [
