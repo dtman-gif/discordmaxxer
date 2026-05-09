@@ -16,9 +16,20 @@
  * vesktop://assets/themes/<id>/<name>.wav.
  */
 
+import { SOUND_CLICK, SOUND_ERROR, SOUND_NOTIFY, SOUND_TOGGLE } from "./sounds-pack";
 import { THEMES, ThemeId } from "./themes";
 
 type SoundName = "click" | "toggle" | "error" | "notify";
+
+// Bundled defaults — Material Design CC-BY 4.0. Same 4 sounds across all
+// themes for now; per-theme variation can layer on top via localStorage
+// overrides if/when we source theme-specific audio.
+const BUNDLED: Record<SoundName, string> = {
+    click: SOUND_CLICK,
+    toggle: SOUND_TOGGLE,
+    notify: SOUND_NOTIFY,
+    error: SOUND_ERROR
+};
 
 let audioCtx: AudioContext | null = null;
 function ctx(): AudioContext | null {
@@ -95,11 +106,12 @@ export function playSound(sound: SoundName, themeId?: ThemeId) {
     const id = (themeId ?? (document.body.className.match(/dm-theme-(\w+)/)?.[1] as ThemeId)) ?? "maxxer";
     if (!THEMES[id]) return;
 
-    // Future hook: registered asset URL
-    const assetKey = `dm-sounds.${id}.${sound}`;
-    const url = (() => {
-        try { return localStorage.getItem(assetKey); } catch { return null; }
+    // Resolution order: per-theme override -> bundled default -> synth fallback.
+    const overrideKey = `dm-sounds.${id}.${sound}`;
+    const override = (() => {
+        try { return localStorage.getItem(overrideKey); } catch { return null; }
     })();
+    const url = override || BUNDLED[sound];
 
     if (url) {
         try {
@@ -108,7 +120,7 @@ export function playSound(sound: SoundName, themeId?: ThemeId) {
             void audio.play();
             return;
         } catch {
-            // fall through to synth
+            // fall through to synth if the data URL fails to decode
         }
     }
 
