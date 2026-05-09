@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="branding/discordmaxxer-mark-secondary.png" alt="Discordmaxxer" width="200"/>
+</p>
+
 # Discordmaxxer
 
 > Discord, optimized.

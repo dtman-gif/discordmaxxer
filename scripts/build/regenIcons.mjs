@@ -3,29 +3,29 @@
  * Copyright (c) 2026 Diggy
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Rasterizes build/icon.svg to multi-size PNGs and packs them into
- * build/icon.ico (Windows) and build/icon.icns (macOS, deferred to v0.2).
+ * Rasterizes the icon source(s) and packs them into build/icon.ico (Windows)
+ * and the static/tray PNGs. .icns (macOS) deferred to v0.2.
  *
- * Why this exists: build/icon.svg was rebranded 2026-05-05 with the
- * Discordmaxxer magenta+blue gradient mark, but icon.ico + icon.icns are
- * still Vesktop's. electron-builder uses the .ico/.icns directly — the
- * .svg is only metadata on Linux. Until this script runs and overwrites
- * them, the installer + tray icon + .exe icon will be Vesktop's penguin.
+ * Sources (in priority order — first found wins):
+ *   Main mark (used for .ico):        build/icon-source.png  →  build/icon.svg
+ *   Tray mark (used for tray PNGs):   build/tray-source.png  →  main source
+ *
+ * The split lets the tray use a simplified silhouette that stays legible
+ * at 16x16, while the main icon keeps full detail.
  *
  * Usage:
  *   pnpm add -D sharp png-to-ico
- *   node scripts/build/regenIcons.mjs
- *
- * Both deps are pure-JS-with-prebuilt-binary (sharp ships native bins
- * for win/mac/linux). Add to devDependencies before running.
+ *   pnpm regen-icons
  */
 
-import { readFile, writeFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..");
+const ICON_PNG = resolve(ROOT, "build", "icon-source.png");
+const TRAY_SRC_PNG = resolve(ROOT, "build", "tray-source.png");
 const SVG = resolve(ROOT, "build", "icon.svg");
 const ICO = resolve(ROOT, "build", "icon.ico");
 const TRAY_PNG = resolve(ROOT, "static", "tray", "tray.png");
@@ -43,12 +43,34 @@ try {
     process.exit(1);
 }
 
-const svgBuf = await readFile(SVG);
-console.log(`[regenIcons] source: ${SVG} (${svgBuf.length} bytes)`);
+async function exists(p) {
+    try { await access(p); return true; } catch { return false; }
+}
+
+async function loadSource(...candidates) {
+    for (const p of candidates) {
+        if (await exists(p)) {
+            const buf = await readFile(p);
+            const isSvg = p.toLowerCase().endsWith(".svg");
+            return { path: p, buf, isSvg };
+        }
+    }
+    throw new Error(`[regenIcons] no source found. Tried: ${candidates.join(", ")}`);
+}
+
+function makeSharp(src, density = 384) {
+    return src.isSvg ? sharp(src.buf, { density }) : sharp(src.buf);
+}
+
+const mainSrc = await loadSource(ICON_PNG, SVG);
+console.log(`[regenIcons] main source: ${mainSrc.path} (${mainSrc.buf.length} bytes)`);
+
+const traySrc = await loadSource(TRAY_SRC_PNG, ICON_PNG, SVG);
+console.log(`[regenIcons] tray source: ${traySrc.path} (${traySrc.buf.length} bytes)`);
 
 const pngBuffers = [];
 for (const size of ICO_SIZES) {
-    const png = await sharp(svgBuf, { density: 384 })
+    const png = await makeSharp(mainSrc, 384)
         .resize(size, size)
         .png()
         .toBuffer();
@@ -62,17 +84,17 @@ console.log(`[regenIcons] wrote ${ICO} (${ico.length} bytes)`);
 
 // Tray PNGs — Windows + Linux read these directly. (macOS reads
 // trayTemplate.png separately; deferred to v0.2 since template icons
-// require monochrome SVGs that the bolt mark isn't yet.)
-const trayPng = await sharp(svgBuf, { density: 512 })
+// require monochrome alpha-only PNGs.)
+const trayPng = await makeSharp(traySrc, 512)
     .resize(32, 32)
     .png()
     .toBuffer();
 await writeFile(TRAY_PNG, trayPng);
 console.log(`[regenIcons] wrote ${TRAY_PNG} (${trayPng.length} bytes)`);
 
-// trayUnread: same bolt with a 1px red border so users can distinguish
+// trayUnread: same silhouette with a 1px red border so users can distinguish
 // "you have notifications" from "tray idle" at a glance.
-const trayUnreadPng = await sharp(svgBuf, { density: 512 })
+const trayUnreadPng = await makeSharp(traySrc, 512)
     .resize(30, 30)
     .extend({ top: 1, bottom: 1, left: 1, right: 1, background: { r: 255, g: 80, b: 80, alpha: 1 } })
     .png()

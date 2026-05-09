@@ -116,20 +116,23 @@
         }
 
         .dm-launch-mark {
-            width: 88px;
-            height: 88px;
-            margin: 0 auto 0.6em;
+            width: 104px;
+            height: 104px;
+            flex-shrink: 0;
+            margin: 0.4em auto 0.8em;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            filter: drop-shadow(0 8px 24px rgba(76, 81, 247, 0.45));
+            border-radius: 16px;
+            overflow: hidden;
+            filter: drop-shadow(0 10px 28px rgba(226, 91, 255, 0.45));
         }
         .dm-launch-mark img {
-            width: 88px;
-            height: 88px;
+            width: 104px;
+            height: 104px;
             display: block;
+            object-fit: contain;
         }
 
         /* Random launch effects (matched to splash.html) */
@@ -164,7 +167,7 @@
 
 <body id="launch-body">
     <div class="dm-launch-mark">
-        <img src="./dm-logo.svg" alt="Discordmaxxer" />
+        <img src="./dm-logo.png" alt="Discordmaxxer" />
     </div>
     <h1>Welcome to Discordmaxxer</h1>
     <p>Discord, optimized. Let's set up the basics.</p>

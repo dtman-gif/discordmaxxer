@@ -3,11 +3,15 @@
  * Copyright (c) 2026 Diggy
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Identity layer with four channels:
+ * Identity layer:
  *   A) Profile badge (mod-side only, default-on)
- *   B) Custom status (vanilla-visible, opt-in via toggle)
  *   C) Bio append (vanilla-visible, opt-in)
  *   D) Pronouns tag (vanilla-visible, opt-in only when pronouns are empty)
+ *
+ * Channel B (custom status) was retired — DiscordmaxxerPresence broadcasts
+ * "Playing Discordmaxxer" via gateway rich presence with the brand logo,
+ * which supersedes a custom-status string. A clear toggle remains so
+ * existing users can wipe a previously-set "Using Discordmaxxer" status.
  *
  * Anti-self-bot rules: B/C/D are PATCHed exactly ONCE when the user flips a
  * toggle from off->on. We never re-assert on subsequent launches. If the user
@@ -20,40 +24,14 @@ import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { RestAPI, Toasts, UserStore } from "@webpack/common";
 
-// Profile-badge mark — simplified signal-bars version of build/icon.svg.
-// Three ascending bars on Discord blurple = "max signal" metaphor.
-// Stays readable at 16x16 badge size where the full chat-bubble logo loses detail.
-// Same brand gradient, no text, optimized for 24x24 rendering in user popouts.
+// Profile-badge mark — v1 horror-Clyde thumbnail (96px PNG with cream
+// background as the "sticker" frame). Renders at ~24x24 in user popouts;
+// at that size the bullet-hole detail still reads as a distinct "shot up
+// Discord mascot" identity. Cream bg works against both light and dark
+// Discord themes.
 const BADGE_ICON =
-    "data:image/svg+xml;charset=utf-8," +
-    encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">` +
-        `<defs>` +
-        `<radialGradient id="dmg" cx="35%" cy="32%" r="78%">` +
-        `<stop offset="0%" stop-color="#8a98ff"/>` +
-        `<stop offset="60%" stop-color="#5865F2"/>` +
-        `<stop offset="100%" stop-color="#2c34c4"/>` +
-        `</radialGradient>` +
-        `<linearGradient id="dmb1" x1="50%" y1="0%" x2="50%" y2="100%">` +
-        `<stop offset="0%" stop-color="#ffaaff"/><stop offset="100%" stop-color="#ff5dff"/>` +
-        `</linearGradient>` +
-        `<linearGradient id="dmb2" x1="50%" y1="0%" x2="50%" y2="100%">` +
-        `<stop offset="0%" stop-color="#d0a4ff"/><stop offset="100%" stop-color="#9a5fff"/>` +
-        `</linearGradient>` +
-        `<linearGradient id="dmb3" x1="50%" y1="0%" x2="50%" y2="100%">` +
-        `<stop offset="0%" stop-color="#a5b1ff"/><stop offset="100%" stop-color="#5865F2"/>` +
-        `</linearGradient>` +
-        `</defs>` +
-        `<circle cx="12" cy="12" r="11" fill="url(#dmg)"/>` +
-        `<rect x="5.5" y="14" width="2.5" height="4" rx="0.5" fill="url(#dmb1)"/>` +
-        `<rect x="9.5" y="11" width="2.5" height="7" rx="0.5" fill="url(#dmb2)"/>` +
-        `<rect x="13.5" y="7.5" width="2.5" height="10.5" rx="0.5" fill="url(#dmb3)"/>` +
-        `<circle cx="14.75" cy="7.4" r="1" fill="#ff5dff"/>` +
-        `<circle cx="14.75" cy="7.4" r="0.5" fill="#ffe0ff"/>` +
-        `</svg>`
-    );
+    "data:image/png;base64,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";
 
-const DEFAULT_STATUS_TEXT = "Using Discordmaxxer";
 const DEFAULT_BIO_LINE = "— Using Discordmaxxer (discordmaxxer.dev)";
 const DEFAULT_PRONOUNS_TAG = "dm.gg";
 
@@ -66,17 +44,17 @@ function toast(msg: string, type: any = Toasts.Type.SUCCESS) {
     });
 }
 
-async function applyCustomStatus(text: string) {
+async function clearCustomStatus() {
     try {
         await RestAPI.patch({
             url: "/users/@me/settings",
-            body: { custom_status: { text } }
+            body: { custom_status: null }
         });
-        toast(`✅ Custom status set to "${text}"`);
+        toast("✅ Custom status cleared");
         return true;
     } catch (e) {
-        console.warn("[DiscordmaxxerBadge] applyCustomStatus failed:", e);
-        toast("Failed to set custom status — see console", Toasts.Type.FAILURE);
+        console.warn("[DiscordmaxxerBadge] clearCustomStatus failed:", e);
+        toast("Failed to clear custom status — see console", Toasts.Type.FAILURE);
         return false;
     }
 }
@@ -145,20 +123,18 @@ const settings = definePluginSettings({
         default: ""
     },
 
-    // Channel B — Custom status
-    customStatusOnce: {
+    // Channel B retired — DiscordmaxxerPresence broadcasts "Playing
+    // Discordmaxxer" via gateway rich presence with the brand logo, which
+    // is strictly better than a custom-status string. This toggle only
+    // remains so existing users can clear a previously-set status.
+    clearLegacyStatus: {
         type: OptionType.BOOLEAN,
         description:
-            "[Channel B] APPLY ONCE — set your Discord custom status to the text below. Toggling this on PATCHes Discord; toggling off does nothing (clear via Discord). Vanilla Discord users will see this.",
+            "Clear any 'Using Discordmaxxer' custom status set by a prior version. Flip ON once to PATCH custom_status to null. Toggling OFF does nothing.",
         default: false,
         onChange: (value: boolean) => {
-            if (value) applyCustomStatus(settings.store.customStatusText.trim() || DEFAULT_STATUS_TEXT);
+            if (value) clearCustomStatus();
         }
-    },
-    customStatusText: {
-        type: OptionType.STRING,
-        description: "[Channel B] Custom status text",
-        default: DEFAULT_STATUS_TEXT
     },
 
     // Channel C — Bio append
@@ -249,9 +225,9 @@ export default definePlugin({
     name: "DiscordmaxxerBadge",
     description:
         "Identity layer for Discordmaxxer. Channel A: a small DM badge on your profile (mod-only visibility). " +
-        "Channels B/C/D: opt-in toggles to set custom status, bio line, or pronouns tag — applied ONCE per flip, " +
-        "never re-asserted. Vanilla Discord users see B/C/D. Configure each channel's text in settings, " +
-        "then flip its toggle on to apply. Disable a channel by clearing it in Discord normally.",
+        "Channels C/D: opt-in toggles to append a bio line or set a pronouns tag — applied ONCE per flip, " +
+        "never re-asserted. Vanilla Discord users see C/D. " +
+        "Custom-status broadcasting was retired — see DiscordmaxxerPresence (rich presence card with brand logo) instead.",
     authors: [{ name: "Diggy", id: 0n }],
     settings,
 

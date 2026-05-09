@@ -30,37 +30,39 @@
         }
 
         .logo-stage {
-            width: 128px;
-            height: 128px;
+            width: 168px;
+            height: 168px;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        /* Inline mark — chat-bubble + signal-bars (build/icon.svg). The SVG
-           brings its own circular face, gradient, glow, magenta seam, and
-           ascending bars. We just give it a 128x128 stage. */
+        /* Horned-Clyde mark with bullet-hole detail (v1). The PNG renders
+           on its own cream background — we wrap it in a squircle to
+           preserve the horns at the top edge instead of clipping to circle. */
         .dm-mark {
-            width: 128px;
-            height: 128px;
+            width: 168px;
+            height: 168px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            border-radius: 50%;
-            filter: drop-shadow(0 8px 32px rgba(76, 81, 247, 0.5));
+            border-radius: 22px;
+            overflow: hidden;
+            filter: drop-shadow(0 8px 32px rgba(226, 91, 255, 0.45));
         }
         .dm-mark img {
-            width: 128px;
-            height: 128px;
+            width: 168px;
+            height: 168px;
             display: block;
+            object-fit: contain;
         }
 
         .ripple {
             position: absolute;
             inset: 0;
-            border-radius: 50%;
+            border-radius: 18px;
             border: 2px solid #e25bff;
             opacity: 0;
             pointer-events: none;
@@ -159,7 +161,7 @@
             <div class="ripple"></div>
             <div class="ripple"></div>
             <div class="dm-mark">
-                <img src="./dm-logo.svg" alt="Discordmaxxer" />
+                <img src="./dm-logo.png" alt="Discordmaxxer" />
             </div>
         </div>
         <p>Loading Discordmaxxer...</p>

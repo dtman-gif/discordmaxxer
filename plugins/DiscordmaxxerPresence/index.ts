@@ -23,7 +23,7 @@
 
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { FluxDispatcher } from "@webpack/common";
+import { ApplicationAssetUtils, FluxDispatcher } from "@webpack/common";
 
 import { hasTier, Tier } from "../_dm-shared/vip";
 
@@ -33,11 +33,28 @@ const VIP_GATE = Tier.MAXXER_PLUS;
 const isCustomizable = () => hasTier(VIP_GATE);
 const isLocked = () => !isCustomizable();
 
+// Discord application registration — required for the big-logo Fortnite-style
+// activity card. One-time setup at https://discord.com/developers/applications:
+//   1. New Application → name "Discordmaxxer" → copy the Application ID
+//   2. Rich Presence → Art Assets → upload v1 mark (1024x1024 PNG)
+//      under the asset name "dm_logo"
+//   3. (Optional) upload a smaller secondary asset as "dm_badge"
+//   4. Paste the Application ID below; assets are auto-resolved by name.
+// If DM_APPLICATION_ID is empty the plugin falls back to text-only activity.
+const DM_APPLICATION_ID = "1502451778426372116";
+// NOTE: dev portal currently has a duplicate "discordmaxxer-mark-primary"
+// asset (two uploads, same name → Discord can't disambiguate, renders ?).
+// Use the uniquely-named "discordmaxxer-logo-v1" instead. Same image content.
+const DM_LARGE_IMAGE_KEY = "discordmaxxer-logo-v1";
+const DM_LARGE_IMAGE_TEXT = "Discordmaxxer • maxxtopia.com";
+const DM_SMALL_IMAGE_KEY = ""; // e.g. "dm_badge" if a secondary asset is uploaded
+const DM_SMALL_IMAGE_TEXT = "maxxtopia.com";
+
 const DEFAULT_NAME = "Discordmaxxer";
 const DEFAULT_DETAILS = "Discord, optimized";
-const DEFAULT_STATE = "discordmaxxer.dev";
-const DEFAULT_BUTTON_LABEL = "Get Discordmaxxer";
-const DEFAULT_BUTTON_URL = "https://maxxtopia.com/discordmaxxer";
+const DEFAULT_STATE = "maxxtopia.com";
+const DEFAULT_BUTTON_LABEL = "Visit maxxtopia.com";
+const DEFAULT_BUTTON_URL = "https://maxxtopia.com";
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
@@ -49,7 +66,22 @@ function setActivity(activity: any | null) {
     });
 }
 
-function buildActivity() {
+// Resolve a Rich Presence asset NAME to its asset SNOWFLAKE ID. Discord's
+// gateway expects `assets.large_image` to be a snowflake, not the dev-portal
+// asset name — sending the name renders ? on the activity card. LastFM does
+// the same lookup via fetchAssetIds.
+async function resolveAssetId(name: string): Promise<string | undefined> {
+    if (!name || !DM_APPLICATION_ID) return undefined;
+    try {
+        const ids = await ApplicationAssetUtils.fetchAssetIds(DM_APPLICATION_ID, [name]);
+        return ids?.[0];
+    } catch (e) {
+        console.warn("[DiscordmaxxerPresence] resolveAssetId failed:", name, e);
+        return undefined;
+    }
+}
+
+async function buildActivity() {
     const s = settings.store;
     const customizable = isCustomizable();
 
@@ -69,21 +101,35 @@ function buildActivity() {
 
     const showButton = customizable ? s.showButton : true;
 
+    // Big-logo card requires application_id + a large_image SNOWFLAKE (not name).
+    // Fall back to text-only activity if the app isn't registered yet.
+    const hasApp = DM_APPLICATION_ID.length > 0;
+    const largeId = hasApp ? await resolveAssetId(DM_LARGE_IMAGE_KEY) : undefined;
+    const smallId = hasApp && DM_SMALL_IMAGE_KEY ? await resolveAssetId(DM_SMALL_IMAGE_KEY) : undefined;
+    const assets = largeId
+        ? {
+              large_image: largeId,
+              large_text: DM_LARGE_IMAGE_TEXT,
+              ...(smallId ? { small_image: smallId, small_text: DM_SMALL_IMAGE_TEXT } : {})
+          }
+        : undefined;
+
     return {
-        application_id: undefined,
+        application_id: hasApp ? DM_APPLICATION_ID : undefined,
         name: customizable ? (s.name || DEFAULT_NAME) : DEFAULT_NAME,
         details: customizable ? (s.details || DEFAULT_DETAILS) : DEFAULT_DETAILS,
         state: customizable ? (s.state || DEFAULT_STATE) : DEFAULT_STATE,
         type: customizable ? (typeMap[s.activityType] ?? ACTIVITY_TYPE_PLAYING) : ACTIVITY_TYPE_PLAYING,
         flags: 1, // INSTANCE — keeps the entry stable
+        assets,
         timestamps: s.showElapsed ? { start: Date.now() } : undefined,
         buttons: showButton ? [DEFAULT_BUTTON_LABEL] : undefined,
         metadata: showButton ? { button_urls: [DEFAULT_BUTTON_URL] } : undefined
     };
 }
 
-function refresh() {
-    setActivity(buildActivity());
+async function refresh() {
+    setActivity(await buildActivity());
 }
 
 const settings = definePluginSettings({

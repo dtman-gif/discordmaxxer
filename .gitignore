@@ -15,7 +15,12 @@ overlay-scripts/reports/
 # User-supplied screenshots (Diggy drops these in to flag UI issues)
 image.png
 unknown.png
+[0-9].png
+[0-9][0-9].png
 *.screenshot.png
+
+# Local-only demo / scratch
+_demo_work/
 
 # Test recordings (Diggy drops these for bug reports)
 *.mp4
