@@ -30,3 +30,10 @@ branding/sounds-preview*.html
 *.mp4
 *.mov
 *.webm
+
+# v0.5.6: Diggy's local screenshot, not part of the build
+/current.png
+# v0.5.6: archived silhouette tray source, kept for archaeology only
+/build/tray-source.OLD-SILHOUETTE.png
+# Branding working/comparison renders — not shipped
+/branding/generated/

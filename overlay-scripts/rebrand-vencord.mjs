@@ -488,6 +488,42 @@ const PATCHES = [
         file: "src/plugins/_api/badges/index.tsx",
         find: 'description: "Vencord Contributor",',
         replace: 'description: "Plugin Engine Contributor",'
+    },
+
+    // ── Round 6 (v0.5.6): CSP allowlist + donor-badge kill ────────────
+    // Allow renderer fetches to the optmaxxing-vip Cloudflare Worker so the
+    // VipClaim panel can POST {code, hwid} without tripping Discord's CSP.
+    // Without this patch, fetch() throws "Failed to fetch" because the
+    // worker domain isn't in connect-src.
+    {
+        file: "src/main/csp/index.ts",
+        find: '    "icons.duckduckgo.com": ImageSrc, // DuckDuckGo Favicon API (Reverse Image Search)\n};',
+        replace:
+            '    "icons.duckduckgo.com": ImageSrc, // DuckDuckGo Favicon API (Reverse Image Search)\n\n' +
+            '    // Discordmaxxer VIP claim worker (shared with optimizationmaxxing).\n' +
+            '    "optmaxxing-vip.maxxtopia.workers.dev": ConnectSrc,\n};'
+    },
+    // No-op the donor-badge loader. With DonorBadges always empty,
+    // getDonorBadges(userId) returns undefined for every user — neither the
+    // donor badge nor its "Please consider supporting Vencord" modal ever
+    // render. Also stops the 30-min poll to badges.vencord.dev.
+    {
+        file: "src/plugins/_api/badges/index.tsx",
+        find:
+            'async function loadBadges(noCache = false) {\n' +
+            '    const init = {} as RequestInit;\n' +
+            '    if (noCache)\n' +
+            '        init.cache = "no-cache";\n\n' +
+            '    DonorBadges = await fetch("https://badges.vencord.dev/badges.json", init)\n' +
+            '        .then(r => r.json());\n' +
+            '}',
+        replace:
+            'async function loadBadges(_noCache = false) {\n' +
+            '    // Discordmaxxer: never surface Vencord donor badges (or their\n' +
+            '    // "support the project" modal). Empty map keeps the upstream\n' +
+            '    // getDonorBadges() flow intact but harmless.\n' +
+            '    DonorBadges = {};\n' +
+            '}'
     }
 ];
 
