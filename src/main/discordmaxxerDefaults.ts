@@ -67,9 +67,16 @@ const PLUGINS_DEFAULT_ON: string[] = [
 ];
 
 const VENCORD_DEFAULTS = {
-    notifyAboutUpdates: true,
-    autoUpdate: true,
-    autoUpdateNotification: true,
+    // Vencord's own auto-updater is OFF by default in Discordmaxxer because
+    // it pulls fresh upstream Vencord source which silently undoes our
+    // rebrand patches (donate card returns, "Vencord" labels reappear,
+    // settings tab unrebrands). Discordmaxxer ships its own update channel
+    // via electron-updater + GitHub Releases — that's the only updater
+    // path users should be on. If a user explicitly flips these on, that's
+    // their call, but the default is OFF.
+    notifyAboutUpdates: false,
+    autoUpdate: false,
+    autoUpdateNotification: false,
     useQuickCss: true,
     themeLinks: [],
     enabledThemes: [],
@@ -130,7 +137,24 @@ export function seedDiscordmaxxerDefaults() {
         added++;
     }
 
-    if (added === 0) return;
+    // Forced overrides that ALWAYS reapply on launch (not respected as user
+    // preferences). Vencord's auto-updater silently pulls upstream files
+    // that undo our rebrand patches — keeping it OFF is structural to the
+    // product, not a default the user gets to toggle. If a user wants
+    // Vencord-style updates, they can install Vesktop directly.
+    const FORCED_OFF_FLAG = "discordmaxxerForcedDefaultsApplied_v1";
+    let forcedChanged = false;
+    if (!existing[FORCED_OFF_FLAG]) {
+        for (const key of ["notifyAboutUpdates", "autoUpdate", "autoUpdateNotification"] as const) {
+            if (existing[key] !== false) {
+                existing[key] = false;
+                forcedChanged = true;
+            }
+        }
+        existing[FORCED_OFF_FLAG] = true;
+    }
+
+    if (added === 0 && !forcedChanged) return;
 
     existing.plugins = plugins;
     existing[SEEDED_KEY] = seeded;
