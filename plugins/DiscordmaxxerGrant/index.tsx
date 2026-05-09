@@ -18,7 +18,7 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import definePlugin, { OptionType } from "@utils/types";
 import { Menu, Toasts } from "@webpack/common";
 
-import { getUserTier, Tier, TIER_LABELS } from "../_dm-shared/vip";
+import { getUserTier, isAdmin, Tier, TIER_LABELS } from "../_dm-shared/vip";
 
 const settings = definePluginSettings({
     grants: {
@@ -65,6 +65,11 @@ function setGrant(userId: string, displayName: string, tier: Tier | null) {
 const TIERS_GRANTABLE: Tier[] = [Tier.MAXXER, Tier.MAXXER_PLUS, Tier.MAXXER_PLUS_PLUS];
 
 const userContextPatch: NavContextMenuPatchCallback = (children, props: any) => {
+    // Admin-only — Grant menu does not appear for non-admin users. Even if
+    // a determined user edits settings.json to add grants, the renderer
+    // ignores them because vip.ts::getUserTier gates local-grant honoring
+    // on isAdmin() too.
+    if (!isAdmin()) return;
     const targetUser = props?.user;
     if (!targetUser?.id) return;
 

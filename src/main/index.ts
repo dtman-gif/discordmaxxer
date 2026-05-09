@@ -9,6 +9,7 @@ import "./updater";
 import "./ipc";
 import "./discordmaxxerHotkeys";
 import "./discordmaxxerPerf";
+import "./discordmaxxerHwid";
 import "./userAssets";
 import "./vesktopProtocol";
 

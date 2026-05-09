@@ -62,7 +62,8 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "DiscordmaxxerPrivacy", // one-shot consent prompt to disable Discord telemetry
     "DiscordmaxxerTrim", // hides Family Center / Nitro promos / HypeSquad
     "DiscordmaxxerPresence", // broadcasts "Playing Discordmaxxer" rich-presence activity
-    "DiscordmaxxerGrant" // right-click → Grant tier; lets MAXXER++ users tag friends with VIP tiers locally
+    "DiscordmaxxerGrant", // right-click → Grant tier (admin-only UI); cross-references local grants on view
+    "DiscordmaxxerVipClaim" // settings panel: redeem HWID-locked VIP code → unlocks MAXXER++ tier
 ];
 
 const VENCORD_DEFAULTS = {

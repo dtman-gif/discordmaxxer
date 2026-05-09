@@ -126,5 +126,8 @@ export const VesktopNative = {
     },
     performanceMode: {
         set: (on: boolean) => invoke<{ priorityChanged: boolean; frameRateLimited: boolean; arRpcDisabled: boolean }>(IpcEvents.DM_SET_PERFORMANCE_MODE, on)
+    },
+    hwid: {
+        get: () => invoke<{ ok: boolean; hwid?: string; error?: string }>(IpcEvents.DM_GET_HWID)
     }
 };
