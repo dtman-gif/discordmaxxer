@@ -3,15 +3,32 @@
  * Copyright (c) 2026 Diggy
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Rasterizes the icon source(s) and packs them into build/icon.ico (Windows)
- * and the static/tray PNGs. .icns (macOS) deferred to v0.2.
+ * Rasterizes two .ico packs and a few PNGs:
  *
- * Sources (in priority order — first found wins):
- *   Main mark (used for .ico):        build/icon-source.png  →  build/icon.svg
- *   Tray mark (used for tray PNGs):   build/tray-source.png  →  main source
+ *   build/icon.ico            — embedded in the .exe by electron-builder.
+ *                               Drives the PINNED TASKBAR slot, Alt+Tab
+ *                               thumbnail (when no setIcon override fires),
+ *                               and the .exe icon shown in Explorer.
+ *                               Source: build/tray-source.png (no bullet
+ *                               holes — bullet holes blur to noise at
+ *                               16-32px taskbar render sizes).
  *
- * The split lets the tray use a simplified silhouette that stays legible
- * at 16x16, while the main icon keeps full detail.
+ *   build/shortcut-icon.ico   — shipped as an extraResource and applied to
+ *                               Start Menu + Desktop shortcuts via the
+ *                               customInstall macro in build/installer.nsh.
+ *                               Lets Diggy keep the bullet-holes horror-
+ *                               Clyde character on shortcut surfaces while
+ *                               the pinned taskbar gets the cleaner glyph.
+ *                               Source: build/icon-source.png (with bullet
+ *                               holes).
+ *
+ *   static/tray/tray.png      — Electron Tray (system notification area).
+ *   static/tray/trayUnread.png  No bullet holes.
+ *   static/taskbar/taskbar.png — Runtime BrowserWindow.setIcon override.
+ *                               Redundant now that .exe icon = no-bullet-
+ *                               holes, but kept as belt-and-suspenders.
+ *
+ * .icns (macOS) deferred to v0.2.
  *
  * Usage:
  *   pnpm add -D sharp png-to-ico
@@ -24,10 +41,11 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..", "..");
-const ICON_PNG = resolve(ROOT, "build", "icon-source.png");
-const TRAY_SRC_PNG = resolve(ROOT, "build", "tray-source.png");
+const HOLES_PNG = resolve(ROOT, "build", "icon-source.png");      // with bullet holes
+const NO_HOLES_PNG = resolve(ROOT, "build", "tray-source.png");   // no bullet holes
 const SVG = resolve(ROOT, "build", "icon.svg");
-const ICO = resolve(ROOT, "build", "icon.ico");
+const ICO = resolve(ROOT, "build", "icon.ico");                   // .exe / pinned taskbar (no holes)
+const SHORTCUT_ICO = resolve(ROOT, "build", "shortcut-icon.ico"); // Start menu + desktop (with holes)
 const TRAY_PNG = resolve(ROOT, "static", "tray", "tray.png");
 const TRAY_UNREAD_PNG = resolve(ROOT, "static", "tray", "trayUnread.png");
 const TASKBAR_PNG = resolve(ROOT, "static", "taskbar", "taskbar.png");
@@ -63,25 +81,44 @@ function makeSharp(src, density = 384) {
     return src.isSvg ? sharp(src.buf, { density }) : sharp(src.buf);
 }
 
-const mainSrc = await loadSource(ICON_PNG, SVG);
-console.log(`[regenIcons] main source: ${mainSrc.path} (${mainSrc.buf.length} bytes)`);
+const noHolesSrc = await loadSource(NO_HOLES_PNG, HOLES_PNG, SVG);
+console.log(`[regenIcons] no-bullet-holes source: ${noHolesSrc.path} (${noHolesSrc.buf.length} bytes)`);
 
-const traySrc = await loadSource(TRAY_SRC_PNG, ICON_PNG, SVG);
-console.log(`[regenIcons] tray source: ${traySrc.path} (${traySrc.buf.length} bytes)`);
+const holesSrc = await loadSource(HOLES_PNG, SVG);
+console.log(`[regenIcons] bullet-holes source:    ${holesSrc.path} (${holesSrc.buf.length} bytes)`);
 
-const pngBuffers = [];
+// Tray + taskbar PNGs reuse the no-holes source; aliased for clarity below.
+const traySrc = noHolesSrc;
+
+// build/icon.ico — embedded in the .exe (pinned taskbar, .exe in Explorer,
+// Alt+Tab fallback). No bullet holes.
+const mainBuffers = [];
 for (const size of ICO_SIZES) {
-    const png = await makeSharp(mainSrc, 384)
+    const png = await makeSharp(noHolesSrc, 384)
         .resize(size, size)
         .png()
         .toBuffer();
-    pngBuffers.push(png);
-    console.log(`  rasterized ${size}x${size} (${png.length} bytes)`);
+    mainBuffers.push(png);
+    console.log(`  no-holes ${size}x${size} (${png.length} bytes)`);
 }
-
-const ico = await pngToIco(pngBuffers);
+const ico = await pngToIco(mainBuffers);
 await writeFile(ICO, ico);
 console.log(`[regenIcons] wrote ${ICO} (${ico.length} bytes)`);
+
+// build/shortcut-icon.ico — applied to Start Menu + Desktop .lnk via the
+// customInstall macro in build/installer.nsh. With bullet holes.
+const shortcutBuffers = [];
+for (const size of ICO_SIZES) {
+    const png = await makeSharp(holesSrc, 384)
+        .resize(size, size)
+        .png()
+        .toBuffer();
+    shortcutBuffers.push(png);
+    console.log(`  with-holes ${size}x${size} (${png.length} bytes)`);
+}
+const shortcutIco = await pngToIco(shortcutBuffers);
+await writeFile(SHORTCUT_ICO, shortcutIco);
+console.log(`[regenIcons] wrote ${SHORTCUT_ICO} (${shortcutIco.length} bytes)`);
 
 // Tray PNGs — Windows + Linux read these directly. (macOS reads
 // trayTemplate.png separately; deferred to v0.2 since template icons
