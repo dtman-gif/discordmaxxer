@@ -242,7 +242,8 @@ const QUICK_TOGGLES: QuickToggle[] = [
     { plugin: "TournamentMode", label: "🎮 Tournament Mode", settingKey: "manuallyActive", note: "Or press Ctrl+Alt+T", noRestart: true },
     { plugin: "CompactView", label: "📐 Compact View", settingKey: "manuallyActive", note: "Or press Ctrl+Alt+H", noRestart: true },
     { plugin: "MassDelete", label: "🗑️ Mass-Delete menu", settingKey: "enableContextMenu", note: "OPT-IN — TOS risk" },
-    { plugin: "DiscordmaxxerBadge", label: "💎 Profile Badge", settingKey: "showOnOwnProfile" }
+    { plugin: "DiscordmaxxerBadge", label: "💎 Profile Badge", settingKey: "showOnOwnProfile" },
+    { plugin: "DiscordmaxxerStreamMute", label: "🔇 Mute screenshare audio", settingKey: "muted", note: "Or press Ctrl+Shift+M", noRestart: true }
 ];
 
 function vencord(): any {
