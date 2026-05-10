@@ -137,7 +137,7 @@ export function DiscordmaxxerVipCard() {
                 : "";
 
     const ctaText = nextVisual ? `Upgrade to ${TIER_LABELS[nextVisual.tier]}` : "View VIP perks";
-    const ctaUrl = "https://discordmaxxer.dev/vip";
+    const ctaUrl = "https://maxxtopia.com/discordmaxxer/vip";
 
     return (
         <div style={{
@@ -307,7 +307,7 @@ export function DiscordmaxxerVipCard() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "12px", flexWrap: "wrap" }}>
                     <a
-                        href="https://discordmaxxer.dev/founder"
+                        href="https://maxxtopia.com/discordmaxxer/vip#founder"
                         target="_blank"
                         rel="noreferrer noopener"
                         style={{

@@ -137,7 +137,7 @@ function BetaPanel() {
                 <div style={{ fontSize: "11.5px", color: "#a0a6b4", marginTop: "2px", lineHeight: 1.4 }}>
                     {allowed
                         ? "Auto-update from GitHub pre-releases (vX.Y.Z-beta.N). Get features earlier; expect bugs."
-                        : "Upgrade to MAXXER++ to opt into early features at https://discordmaxxer.dev/vip"}
+                        : "Upgrade to MAXXER++ to opt into early features at https://maxxtopia.com/discordmaxxer/vip"}
                 </div>
             </div>
         </div>

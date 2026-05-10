@@ -124,5 +124,5 @@ export function hasTier(required: Tier): boolean {
 export function tierGateMessage(required: Tier): string {
     const my = TIER_LABELS[getMyTier()];
     const need = TIER_LABELS[required];
-    return `${need} required (you are ${my}). Visit discordmaxxer.dev/upgrade`;
+    return `${need} required (you are ${my}). Visit maxxtopia.com/discordmaxxer/vip`;
 }
