@@ -4,7 +4,18 @@
 
 ## Current version
 
-`v0.1.0` — full plugin set, validated end-to-end on live Discord 2026-05-06
+`v0.6.4` — three MAXXER+ exclusive themes added: Akatsuki (bone+blood+void), DMC: Devil Trigger (Dante red + Sparda blue + DT pulse), Eminence in Shadow (slime + atomic-blue lightning). DiscordmaxxerTheme picker now shows 🔒 lock indicator on gated themes; falls back to default with toast when a locked theme is selected without entitlement. Closes the MAXXER+ "exclusive themes" un-delivered perk. **Founder claim self-test deferred — debug live on first real claim.** Earlier 13-release run (v0.5.0 → v0.6.3, 2026-05-09→10) shipped horror-Clyde rebrand, full Hypixel-style tier ladder, TierFlair plugin, Founder #1-33 system, video bg saved slots, MAXXER++ presence text gate.
+
+## Last session — 2026-05-10 (themes pass)
+
+Three new MAXXER+ themes added to the registry. Each is a distinct identity, not a recolor:
+- **Akatsuki** — cloud-soft mention badges (radial-gradient, Akatsuki cloud silhouette feel), headband-scratch sweep across mention strip, slow ominous fade-in on new messages, sharp torn-scroll card corners, bone+blood+void palette, Cinzel headings.
+- **DMC: Devil Trigger** — distinct from the free `dmc` theme. Pulsing mention badges that shimmer red→Sparda-blue→red on a 1.8s loop, hexagonal clip-path, dual-tone red+blue corona on hovered messages, mention strip drips red-to-blue gradient, gothic-aggressive serif headings with text-shadow glow.
+- **Eminence in Shadow** — atomic pulse on mention badges (slow box-shadow expand, cyan halo), lightning-crackle border on mention strip (steps animation, jitters every ~1.4s), slime-magenta + electric-cyan gradient hover streak, theatrical Cinzel Decorative headings with dual text-shadow.
+
+Tier-gating wired through `_dm-shared/themes.ts` (new `tierGate?: Tier` field) + `DiscordmaxxerTheme/index.ts` (calls `hasTier()` from `_dm-shared/vip`). Locked themes appear in the picker with `🔒 Name (MAXXER+) — blurb` label; selecting one without entitlement falls back to `maxxer` and surfaces a toast.
+
+## Earlier — 2026-05-06 (evening — perf + telemetry pass)
 
 ## Last session — 2026-05-06 (evening — perf + telemetry pass)
 

@@ -3,17 +3,18 @@
  * Copyright (c) 2026 Diggy
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Five named themes, each a complete Discord color-palette override.
- * Sourced from optimizationmaxxing's profile system (Val/Sonic/DMC/BO3)
- * adapted for Discord's CSS variable namespace + the original Maxxer
- * brand (magenta + cobalt).
+ * Eight named themes, each a complete Discord color-palette override.
+ * Five free (maxxer/val/sonic/dmc/bo3); three MAXXER+ exclusives
+ * (akatsuki/dmcdt/eminence) added v0.6.4.
  *
  * Each theme covers Discord's full var graph: brand, background,
  * text, header, channels, interactive, scrollbar. Cosmetic-only —
  * does not change layout or hide elements.
  */
 
-export type ThemeId = "maxxer" | "val" | "sonic" | "dmc" | "bo3";
+import { Tier } from "./vip";
+
+export type ThemeId = "maxxer" | "val" | "sonic" | "dmc" | "bo3" | "akatsuki" | "dmcdt" | "eminence";
 
 export interface ThemePalette {
     /** Primary brand accent (button fills, links, mention pings). */
@@ -68,6 +69,8 @@ export interface Theme {
     palette: ThemePalette;
     /** Optional font-family override for headings (DMC uses serif). */
     headingFont?: string;
+    /** Minimum tier required to apply. Undefined = free. */
+    tierGate?: Tier;
 }
 
 const FONT_BODY = "-apple-system, 'Segoe UI', Roboto, sans-serif";
@@ -208,10 +211,102 @@ export const THEMES: Record<ThemeId, Theme> = {
             border: "rgba(255, 107, 26, 0.22)",
             borderGlow: "rgba(255, 107, 26, 0.5)"
         }
+    },
+
+    /* ───── MAXXER+ exclusives (v0.6.4) ───── */
+
+    akatsuki: {
+        id: "akatsuki",
+        label: "Akatsuki",
+        blurb: "Hidden organization. Bone + blood + void. Red clouds on black.",
+        bodyClass: "dm-theme-akatsuki",
+        swatch: { primary: "#c8332b", secondary: "#0a0709" },
+        tierGate: Tier.MAXXER_PLUS,
+        palette: {
+            brand: "#c8332b",
+            brandSoft: "#e54a3f",
+            brandDark: "#7e1f18",
+            brandTrans: "rgba(200, 51, 43, 0.22)",
+            bgPrimary: "#0a0709",
+            bgSecondary: "#15101a",
+            bgSecondaryAlt: "#070406",
+            bgTertiary: "#020203",
+            bgFloating: "#1c1620",
+            bgInput: "#221823",
+            textNormal: "#f0e4d8",
+            textMuted: "#a08770",
+            textSubtle: "#6c5a4c",
+            textLink: "#e54a3f",
+            channelText: "#7a6a5e",
+            channelTextHover: "#c8332b",
+            border: "rgba(200, 51, 43, 0.20)",
+            borderGlow: "rgba(200, 51, 43, 0.50)"
+        },
+        headingFont: "'Cinzel', 'Cormorant Garamond', Georgia, serif"
+    },
+
+    dmcdt: {
+        id: "dmcdt",
+        label: "DMC: Devil Trigger",
+        blurb: "Dante's coat + Sparda's blue. Devil Trigger pulse — premium.",
+        bodyClass: "dm-theme-dmcdt",
+        swatch: { primary: "#cc1430", secondary: "#3a8eff" },
+        tierGate: Tier.MAXXER_PLUS,
+        palette: {
+            brand: "#cc1430",
+            brandSoft: "#ff3050",
+            brandDark: "#7a0a1c",
+            brandTrans: "rgba(204, 20, 48, 0.24)",
+            bgPrimary: "#0c0608",
+            bgSecondary: "#1c1014",
+            bgSecondaryAlt: "#080405",
+            bgTertiary: "#040203",
+            bgFloating: "#28161c",
+            bgInput: "#2e1820",
+            textNormal: "#f8efe0",
+            textMuted: "#c2b29a",
+            textSubtle: "#8a7a64",
+            textLink: "#3a8eff",
+            channelText: "#a89678",
+            channelTextHover: "#cc1430",
+            border: "rgba(204, 20, 48, 0.25)",
+            borderGlow: "rgba(58, 142, 255, 0.45)"
+        },
+        headingFont: "'Cinzel', 'Cormorant Garamond', Georgia, serif"
+    },
+
+    eminence: {
+        id: "eminence",
+        label: "Eminence in Shadow",
+        blurb: "Slime magenta + atomic-blue lightning + void. I am... atomic.",
+        bodyClass: "dm-theme-eminence",
+        swatch: { primary: "#d63aff", secondary: "#5ae3ff" },
+        tierGate: Tier.MAXXER_PLUS,
+        palette: {
+            brand: "#d63aff",
+            brandSoft: "#e96bff",
+            brandDark: "#8a1cb0",
+            brandTrans: "rgba(214, 58, 255, 0.22)",
+            bgPrimary: "#080608",
+            bgSecondary: "#15101c",
+            bgSecondaryAlt: "#050306",
+            bgTertiary: "#020103",
+            bgFloating: "#1e1830",
+            bgInput: "#241c38",
+            textNormal: "#ece6f5",
+            textMuted: "#a89cba",
+            textSubtle: "#766a8a",
+            textLink: "#5ae3ff",
+            channelText: "#7e7290",
+            channelTextHover: "#d63aff",
+            border: "rgba(214, 58, 255, 0.20)",
+            borderGlow: "rgba(90, 227, 255, 0.50)"
+        },
+        headingFont: "'Cinzel Decorative', 'Cinzel', Georgia, serif"
     }
 };
 
-export const THEME_ORDER: ThemeId[] = ["maxxer", "val", "sonic", "dmc", "bo3"];
+export const THEME_ORDER: ThemeId[] = ["maxxer", "val", "sonic", "dmc", "bo3", "akatsuki", "dmcdt", "eminence"];
 export const DEFAULT_THEME: ThemeId = "maxxer";
 
 /**
@@ -481,6 +576,157 @@ export function themeFlairCss(theme: Theme): string {
                 background-color: ${p.brand} !important;
                 animation: dm-typing-${theme.id} 1.0s ease-in-out infinite;
                 box-shadow: 0 0 6px ${p.brandTrans};
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.12s; }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.24s; }
+        `,
+
+        akatsuki: `
+            /* Cloud-soft mention badges — Akatsuki cloud silhouette feel */
+            body.${cls} [class*="mentionsBadge_"], body.${cls} [class*="numberBadge_"] {
+                border-radius: 50% / 60% !important;
+                background: radial-gradient(circle at 30% 30%, ${p.brandSoft}, ${p.brandDark}) !important;
+                box-shadow: 0 0 8px ${p.brandTrans}, inset 0 1px 0 rgba(255,255,255,0.18);
+            }
+            /* Headband-scratch sweep across mention strip */
+            body.${cls} [class*="mentioned_"] [class*="content_"] {
+                box-shadow: inset 2px 0 0 ${p.brand};
+                position: relative; overflow: hidden;
+            }
+            body.${cls} [class*="mentioned_"] [class*="content_"]::after {
+                content: ""; position: absolute; left: 0; top: 50%;
+                width: 100%; height: 1px; transform: translateY(-50%) rotate(-1.5deg);
+                background: linear-gradient(90deg, transparent, ${p.brandTrans} 30%, ${p.brand} 50%, ${p.brandTrans} 70%, transparent);
+                opacity: 0.6;
+                animation: dm-akatsuki-scratch 4.2s ease-in-out infinite;
+            }
+            @keyframes dm-akatsuki-scratch {
+                0%, 100% { opacity: 0.0; transform: translate(-30%, -50%) rotate(-1.5deg); }
+                50% { opacity: 0.7; transform: translate(20%, -50%) rotate(-1.5deg); }
+            }
+            body.${cls} h1, body.${cls} h2, body.${cls} h3, body.${cls} h4 {
+                font-family: ${theme.headingFont || "'Cinzel', Georgia, serif"};
+                letter-spacing: 0.04em; text-transform: uppercase;
+            }
+            /* Slow ominous fade-in on new messages */
+            body.${cls} [class*="messageListItem_"] { animation: dm-message-fade-akatsuki 480ms ease-out; }
+            @keyframes dm-message-fade-akatsuki {
+                from { opacity: 0; filter: blur(1px); transform: translateX(-2px); }
+                to { opacity: 1; filter: blur(0); transform: translateX(0); }
+            }
+            /* Bloody dripping typing dots */
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                background-color: ${p.brand} !important;
+                animation: dm-typing-${theme.id} 1.4s ease-in-out infinite;
+                box-shadow: 0 2px 4px ${p.brandTrans};
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.25s; }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.50s; }
+            /* Sharp-cornered cards (like a torn scroll) */
+            body.${cls} [class*="card_"], body.${cls} [class*="modal_"] {
+                border-radius: 0 !important;
+                clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+            }
+        `,
+
+        dmcdt: `
+            /* Devil Trigger pulse — red→blue→red shimmer on mention badges */
+            body.${cls} [class*="mentionsBadge_"], body.${cls} [class*="numberBadge_"] {
+                background: ${p.brand} !important;
+                animation: dm-devil-trigger 1.8s ease-in-out infinite;
+                clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+                box-shadow: 0 0 10px ${p.brandTrans};
+            }
+            @keyframes dm-devil-trigger {
+                0%, 100% { background: ${p.brand}; box-shadow: 0 0 10px ${p.brandTrans}; }
+                50% { background: ${p.textLink}; box-shadow: 0 0 14px ${p.borderGlow}; }
+            }
+            /* SDT corona on hovered messages — dual-tone red+blue glow */
+            body.${cls} [class*="messageListItem_"]:hover {
+                background: linear-gradient(90deg, ${p.brandTrans} 0%, transparent 8%);
+                box-shadow: inset 2px 0 0 ${p.brand}, inset 0 -1px 0 ${p.borderGlow};
+            }
+            /* Mention strip — red border with Sparda-blue glow drip */
+            body.${cls} [class*="mentioned_"] [class*="content_"] {
+                box-shadow: inset 2px 0 0 ${p.brand}, 0 0 12px -4px ${p.borderGlow};
+                position: relative;
+            }
+            body.${cls} [class*="mentioned_"] [class*="content_"]::before {
+                content: ""; position: absolute; left: 0; top: 100%;
+                width: 2px; height: 8px;
+                background: linear-gradient(${p.brand}, ${p.textLink});
+                animation: dm-drip-${theme.id} 1.6s ease-in infinite;
+            }
+            /* Heavy serif headings — gothic-aggressive */
+            body.${cls} h1, body.${cls} h2, body.${cls} h3 {
+                font-family: ${theme.headingFont || "'Cinzel', Georgia, serif"};
+                letter-spacing: 0.03em; font-weight: 700;
+                text-shadow: 0 0 4px ${p.brandTrans};
+            }
+            /* Sharp angled corners on cards */
+            body.${cls} [class*="card_"], body.${cls} [class*="modal_"] {
+                border-radius: 0 !important;
+                clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+            }
+            body.${cls} [class*="messageContent_"] { border-radius: 0 !important; }
+            /* Typing — red embers with blue cores */
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                background-color: ${p.brand} !important;
+                animation: dm-typing-${theme.id} 1.2s ease-in-out infinite;
+                box-shadow: 0 0 4px ${p.brandTrans}, inset 0 0 2px ${p.textLink};
+            }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.20s; }
+            body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.40s; }
+        `,
+
+        eminence: `
+            /* Atomic pulse — slow expand on mention badges with cyan halo */
+            body.${cls} [class*="mentionsBadge_"], body.${cls} [class*="numberBadge_"] {
+                background: ${p.brand} !important;
+                animation: dm-atomic-${theme.id} 2.6s ease-in-out infinite;
+                box-shadow: 0 0 8px ${p.brandTrans};
+            }
+            @keyframes dm-atomic-${theme.id} {
+                0%, 100% { box-shadow: 0 0 6px ${p.brandTrans}, 0 0 0 0 ${p.borderGlow}; }
+                50% { box-shadow: 0 0 14px ${p.brandTrans}, 0 0 20px 2px ${p.borderGlow}; }
+            }
+            /* Lightning-crackle border on mention strip */
+            body.${cls} [class*="mentioned_"] [class*="content_"] {
+                box-shadow: inset 2px 0 0 ${p.brand};
+                position: relative; overflow: hidden;
+            }
+            body.${cls} [class*="mentioned_"] [class*="content_"]::after {
+                content: ""; position: absolute; left: 0; top: 0;
+                width: 2px; height: 100%;
+                background: ${p.textLink};
+                animation: dm-lightning-${theme.id} 1.4s steps(8, end) infinite;
+                opacity: 0;
+            }
+            @keyframes dm-lightning-${theme.id} {
+                0%, 92%, 100% { opacity: 0; transform: translateY(0); }
+                93% { opacity: 1; transform: translateY(-3px); box-shadow: 0 0 6px ${p.textLink}; }
+                95% { opacity: 0.4; transform: translateY(2px); }
+                97% { opacity: 1; transform: translateY(-1px); box-shadow: 0 0 10px ${p.textLink}; }
+            }
+            /* Slime-drip hover — purple-to-cyan gradient streak */
+            body.${cls} [class*="messageListItem_"]:hover {
+                background: linear-gradient(90deg, ${p.brandTrans} 0%, rgba(90, 227, 255, 0.06) 6%, transparent 14%);
+            }
+            /* Theatrical heading — Cid's "I am... Shadow" energy */
+            body.${cls} h1, body.${cls} h2, body.${cls} h3 {
+                font-family: ${theme.headingFont || "'Cinzel Decorative', Georgia, serif"};
+                letter-spacing: 0.06em;
+                text-shadow: 0 0 8px ${p.brandTrans}, 0 0 16px ${p.borderGlow};
+            }
+            /* Soft 8px corners — slime-soft, not gothic */
+            body.${cls} [class*="messageContent_"],
+            body.${cls} [class*="card_"],
+            body.${cls} [class*="modal_"] { border-radius: 8px !important; }
+            /* Cyan electric typing flicker */
+            body.${cls} [class*="typing_"] [class*="dot_"] {
+                background-color: ${p.textLink} !important;
+                animation: dm-typing-${theme.id} 0.8s steps(3, end) infinite;
+                box-shadow: 0 0 6px ${p.borderGlow};
             }
             body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(2) { animation-delay: 0.12s; }
             body.${cls} [class*="typing_"] [class*="dot_"]:nth-child(3) { animation-delay: 0.24s; }
