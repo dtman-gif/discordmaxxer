@@ -22,6 +22,7 @@ import { definePluginSettings } from "@api/Settings";
 import { ChannelStore, FluxDispatcher, UserStore } from "@webpack/common";
 import definePlugin, { OptionType } from "@utils/types";
 
+import { CHIME_BY_ID, CHIME_LIBRARY } from "../_dm-shared/chime-library";
 import { playSound, soundsEnabled } from "../_dm-shared/sounds";
 import { hasTier, Tier } from "../_dm-shared/vip";
 
@@ -83,16 +84,51 @@ function onMessageCreate(payload: { message?: DiscordMessage }) {
     if (now - last < COOLDOWN_MS) return;
     lastChimeAt.set(channelId, now);
 
-    // playSound auto-resolves the active theme from <body>.dm-theme-* class.
+    const chimeId = settings.store.chime as string | undefined;
+    if (chimeId && chimeId !== "theme-default" && CHIME_BY_ID[chimeId]) {
+        try {
+            const audio = new Audio(CHIME_BY_ID[chimeId].url);
+            audio.volume = 0.6;
+            void audio.play();
+            return;
+        } catch { /* fall through to theme-default on decode failure */ }
+    }
+
+    // theme-default — playSound auto-resolves the active theme's notify
+    // sound from <body>.dm-theme-* class (themed pack -> bundled -> synth).
     playSound("notify");
+}
+
+function previewChime(id: string) {
+    if (id === "theme-default") {
+        playSound("notify");
+        return;
+    }
+    const chime = CHIME_BY_ID[id];
+    if (!chime) return;
+    try {
+        const audio = new Audio(chime.url);
+        audio.volume = 0.6;
+        void audio.play();
+    } catch { /* swallow — preview is best-effort */ }
 }
 
 const settings = definePluginSettings({
     enabled: {
         type: OptionType.BOOLEAN,
         description:
-            "Play a themed chime when you're @-mentioned, get a DM, or see @everyone. Tone follows your active Discordmaxxer theme.",
+            "Play a chime when you're @-mentioned, get a DM, or see @everyone. Per-channel 1.5s cooldown prevents spam-burst machine-gunning.",
         default: true
+    },
+    chime: {
+        type: OptionType.SELECT,
+        description: "Pick your mention chime. 'Match active theme' uses your Discordmaxxer theme's curated notify sound; the rest are explicit picks from the chime library (CC-BY 4.0, Kenney).",
+        default: "theme-default",
+        options: [
+            { label: "Match active theme (default)", value: "theme-default", default: true },
+            ...CHIME_LIBRARY.map(c => ({ label: c.label, value: c.id }))
+        ],
+        onChange: (value: string) => previewChime(value)
     }
 });
 

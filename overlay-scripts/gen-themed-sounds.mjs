@@ -65,6 +65,27 @@ const PACKS = {
         toggle: "glitch_002.ogg",
         notify: "confirmation_002.ogg",
         error:  "error_006.ogg"
+    },
+    akatsuki: {
+        // Bone + blood + void. Ominous strings + temple bells + glass shards.
+        click:  "pluck_001.ogg",       // string pluck
+        toggle: "scroll_001.ogg",      // ritual paper unfurl
+        notify: "bong_001.ogg",        // temple bell — Akatsuki summon
+        error:  "scratch_002.ogg"      // ritual scratch
+    },
+    dmcdt: {
+        // DMC: Devil Trigger — Sparda blue + Dante red. Aggressive percussion.
+        click:  "switch_004.ogg",      // sword-snap
+        toggle: "open_002.ogg",        // demonic gate open
+        notify: "maximize_004.ogg",    // ascending DT activation
+        error:  "drop_003.ogg"         // weapon drop
+    },
+    eminence: {
+        // Eminence in Shadow — atomic blue lightning + slime magenta.
+        click:  "switch_005.ogg",      // crisp lightning crackle
+        toggle: "open_003.ogg",        // shadow-stage curtain
+        notify: "maximize_007.ogg",    // electric ascending pulse
+        error:  "glitch_004.ogg"       // glitch (theatrical break)
     }
 };
 
