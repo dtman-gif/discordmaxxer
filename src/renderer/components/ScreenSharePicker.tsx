@@ -104,6 +104,58 @@ interface Source {
     url: string;
 }
 
+interface WinAudioSessionLite {
+    pid: number;
+    processName: string;
+    displayName: string;
+    isActive: boolean;
+}
+
+// Auto-detect the audio session that owns a shared window. Matches OG
+// Discord behavior: capture audio per-shared-app instead of system-wide,
+// so Discord's own voice playback isn't included in the outgoing screenshare
+// audio track (= no self-echo for the listener). Heuristic match — window
+// titles and process names overlap loosely (e.g. window "Fortnite" vs
+// process "FortniteClient-Win64-Shipping.exe"). Returns null if no
+// confident match — caller falls back to stock Electron loopback.
+function findAudioSessionForWindow(
+    sessions: WinAudioSessionLite[],
+    windowName: string
+): WinAudioSessionLite | null {
+    const normalize = (s: string) =>
+        s.toLowerCase().replace(/\.exe$/, "").replace(/[^a-z0-9]/g, "");
+    const target = normalize(windowName);
+    if (!target) return null;
+
+    // Score every session against the window title. Process name match is
+    // weighted higher than display-name because process names are stable
+    // across runs while display names can be empty / generic.
+    const scored = sessions
+        .map(s => {
+            const proc = normalize(s.processName);
+            const disp = normalize(s.displayName);
+            let score = 0;
+            if (proc === target) score += 10;
+            else if (proc && (proc.includes(target) || target.includes(proc))) score += 4;
+            if (disp === target) score += 6;
+            else if (disp && (disp.includes(target) || target.includes(disp))) score += 2;
+            if (s.isActive) score += 1; // tie-breaker: currently playing audio
+            return { session: s, score };
+        })
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+    if (scored.length > 0) return scored[0].session;
+
+    // No name match found. Last-resort heuristic: if there's exactly one
+    // session actively playing audio, that's almost certainly what the
+    // streamer wants to share.
+    const activeOnly = sessions.filter(s => s.isActive);
+    if (activeOnly.length === 1) return activeOnly[0];
+
+    return null;
+}
+
 export let currentSettings: StreamSettings | null = null;
 
 const logger = new Logger("VesktopScreenShare");
@@ -199,25 +251,20 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                             }
                         }
 
-                        // winaudio paths (Windows). Two opt-in modes for
-                        // advanced setups — process-include (pick one app)
-                        // and per-device loopback (pick an output endpoint).
-                        // When neither is picked we let `streams.audio =
-                        // "loopback"` (set in main/screenShare.ts) flow
-                        // through unchanged, which is stock Discord
-                        // behavior: Electron's default-device WASAPI
-                        // loopback streams the full system mix.
-                        //
-                        // v0.7.5 had an exclude-Discord-from-loopback
-                        // default here intended to solve the self-echo bug
-                        // (streamer's loopback re-broadcasting incoming
-                        // voice audio). It worked in theory but produced
-                        // SILENT capture on real rigs — listeners heard no
-                        // audio at all. Reverted to stock loopback in
-                        // v0.7.10; self-echo is now solved on the LISTENER
-                        // side via the DiscordmaxxerStreamMute plugin
-                        // (Ctrl+Shift+M to mute incoming screenshare audio
-                        // without affecting voice chat).
+                        // winaudio paths (Windows). Three modes, in priority
+                        // order:
+                        //   1. Process-include (user manually picked an app).
+                        //   2. Per-device loopback (user picked an output
+                        //      endpoint — for Voicemeeter / mixer setups).
+                        //   3. System default → tries to AUTO-DETECT the
+                        //      shared window's owning process and use
+                        //      process-include on that PID. Matches OG
+                        //      Discord's per-app audio capture so the
+                        //      listener doesn't hear their own voice echo
+                        //      back through the streamer's Discord playback.
+                        //      Falls back to stock Electron loopback if the
+                        //      auto-detect can't confidently match the
+                        //      window to an audio session.
                         let pendingWinAudio: WinAudioSession | null = null;
                         if (isWindows && v.audio) {
                             try {
@@ -228,9 +275,42 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                                     );
                                 } else if (v.windowsAudioDeviceId) {
                                     pendingWinAudio = await startWinAudioSession(v.windowsAudioDeviceId);
+                                } else if (v.id?.startsWith("window:")) {
+                                    // System-default mode + sharing a specific
+                                    // window — try to find the app whose
+                                    // audio we should capture. Falls through
+                                    // to stock loopback on no-match.
+                                    const picked = screens.find(s => s.id === v.id);
+                                    const windowName = picked?.name;
+                                    if (windowName) {
+                                        const sessionsResp = await VesktopNative.winAudio.listSessions();
+                                        if (sessionsResp.ok) {
+                                            const match = findAudioSessionForWindow(
+                                                sessionsResp.sessions,
+                                                windowName
+                                            );
+                                            if (match) {
+                                                logger.info(
+                                                    `[winaudio] auto-detected ${match.processName} ` +
+                                                    `(pid ${match.pid}) for shared window "${windowName}" ` +
+                                                    `— using process-include capture`
+                                                );
+                                                pendingWinAudio = await startWinAudioProcessSession(
+                                                    match.pid,
+                                                    "include"
+                                                );
+                                            } else {
+                                                logger.info(
+                                                    `[winaudio] no audio session matched window ` +
+                                                    `"${windowName}" — falling back to stock Electron ` +
+                                                    `loopback (full system audio capture)`
+                                                );
+                                            }
+                                        }
+                                    }
                                 }
-                                // else: System default mode — leave the stock
-                                // Electron loopback in place, no replaceTrack.
+                                // else: Entire-screen share → no single
+                                // process to scope to → stock loopback.
                             } catch (e) {
                                 logger.error("[winaudio] start failed — falling back to default loopback:", e);
                             }
@@ -618,7 +698,7 @@ function AudioSourcePickerWindows({
                 <Heading tag="h5">Audio source (Windows)</Heading>
                 <div className={cl("option-radios")} style={{ marginTop: 6 }}>
                     <label className={cl("option-radio")} data-checked={mode === "default"}>
-                        <Span weight="bold">System default (stock Discord)</Span>
+                        <Span weight="bold">System default — Auto-mute my voice on screenshare</Span>
                         <input
                             className={cl("option-input")}
                             type="radio"
