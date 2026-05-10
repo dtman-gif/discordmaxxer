@@ -104,6 +104,8 @@ function buildCss() {
     const showRing = settings.store.avatarRing;
     const showNameTint = settings.store.nameTint;
     const showBanner = settings.store.popoutBanner;
+    const showVoiceColor = settings.store.voiceColor;
+    const showAboutCredit = settings.store.aboutCredit;
     const animateMaxxerPP = settings.store.animatedBadgePlusPlus;
 
     const ringRule = (tier: Tier, c: typeof COLORS[Tier.MAXXER]) =>
@@ -182,6 +184,46 @@ function buildCss() {
         img[src*="discordmaxxer-founder"] {
             filter: drop-shadow(0 0 6px rgba(255, 170, 0, 0.55));
         }
+
+        /* Voice channel name color — MAXXER++ only. Tags the voice-channel
+           member row's username so MAXXER++ users light up gold while in VC.
+           Discord uses [class*="voiceUser"] for the row and [class*="name"] /
+           [class*="usernameInner"] for the username text. We scope by voice
+           context so we don't double-paint the existing member-list tint. */
+        ${showVoiceColor ? `
+        [class*="voiceUser"][data-dm-tier="MAXXER_PLUS_PLUS"] [class*="name"],
+        [class*="voiceUser"][data-dm-tier="MAXXER_PLUS_PLUS"] [class*="username"],
+        [class*="voiceUser"] [data-dm-tier="MAXXER_PLUS_PLUS"] [class*="name"],
+        [class*="voiceUser"] [data-dm-tier="MAXXER_PLUS_PLUS"] [class*="username"] {
+            color: ${COLORS[Tier.MAXXER_PLUS_PLUS].name} !important;
+            text-shadow: 0 0 6px ${COLORS[Tier.MAXXER_PLUS_PLUS].glow};
+            ${animateMaxxerPP ? "animation: dm-shimmer-gold 2.8s ease-in-out infinite;" : ""}
+        }
+        ` : ""}
+
+        /* About credit — MAXXER++ only. Injects a "Discordmaxxer ++ supporter"
+           line in the bio area of MAXXER++ users' profile popouts. Visible to
+           any other Discordmaxxer user opening their popout. NOT a Discord
+           account mutation — pure client-side decoration, gated by roster. */
+        ${showAboutCredit ? `
+        [class*="userPopout"]:has([data-dm-tier="MAXXER_PLUS_PLUS"]) [class*="bio"]::after,
+        [class*="userProfile"]:has([data-dm-tier="MAXXER_PLUS_PLUS"]) [class*="bio"]::after,
+        [class*="userPopout"]:has([data-dm-tier="MAXXER_PLUS_PLUS"]) [class*="userInfoSection"]:first-of-type::after {
+            content: "★ Discordmaxxer++ supporter";
+            display: block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, ${COLORS[Tier.MAXXER_PLUS_PLUS].glow}, transparent);
+            color: ${COLORS[Tier.MAXXER_PLUS_PLUS].name};
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            text-shadow: 0 0 6px ${COLORS[Tier.MAXXER_PLUS_PLUS].glow};
+            border-left: 2px solid ${COLORS[Tier.MAXXER_PLUS_PLUS].ring};
+        }
+        ` : ""}
     `;
 }
 
@@ -255,6 +297,18 @@ const settings = definePluginSettings({
     animatedBadgePlusPlus: {
         type: OptionType.BOOLEAN,
         description: "Animated shimmer for MAXXER++ name tint (gold→red→gold sweep). Disable if it's distracting.",
+        default: true,
+        onChange: () => { if (style) style.textContent = buildCss(); }
+    },
+    voiceColor: {
+        type: OptionType.BOOLEAN,
+        description: "Voice channel name color (MAXXER++ only) — gold tint on MAXXER++ users while in voice channels.",
+        default: true,
+        onChange: () => { if (style) style.textContent = buildCss(); }
+    },
+    aboutCredit: {
+        type: OptionType.BOOLEAN,
+        description: "About credit (MAXXER++ only) — adds a 'Discordmaxxer++ supporter' strip in MAXXER++ users' profile popouts.",
         default: true,
         onChange: () => { if (style) style.textContent = buildCss(); }
     },
