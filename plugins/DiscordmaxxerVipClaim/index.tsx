@@ -85,14 +85,16 @@ function ClaimPanel() {
                     hwid,
                     tier: Tier.MAXXER_PLUS_PLUS,
                     claimedAt: now,
-                    lastValidatedAt: now
+                    lastValidatedAt: now,
+                    founderNumber: r.founderNumber
                 };
                 writeBinding(fresh);
                 setBinding(fresh);
                 setCode("");
+                const founderTag = r.founderNumber ? ` Founder #${r.founderNumber} of 33.` : "";
                 toast(r.status === "claimed"
-                    ? "🎉 MAXXER++ unlocked. Restart Discordmaxxer to refresh badges."
-                    : "✅ Code already bound to this rig — VIP active.", Toasts.Type.SUCCESS);
+                    ? `🎉 MAXXER++ unlocked.${founderTag} Restart Discordmaxxer to refresh badges.`
+                    : `✅ Code already bound to this rig — VIP active.${founderTag}`, Toasts.Type.SUCCESS);
             } else {
                 if (r.boundHwid && r.boundHwid !== hwid) {
                     toast("That code is already claimed by another rig. One code, one machine.", Toasts.Type.FAILURE);

@@ -35,29 +35,37 @@ const LADDER: TierVisual[] = [
         tier: Tier.FREE,
         bracketColor: "#9aa1ad",
         plusColor: null,
-        perks: ["Full plugin set", "5 themes", "All hotkeys", "TournamentMode"],
+        perks: ["All plugins · all themes", "Tournament Mode · Hub panel", "1 active video bg"],
         priceLabel: "Free forever"
     },
     {
         tier: Tier.MAXXER,
         bracketColor: "#55FF55",
         plusColor: null,
-        perks: ["Profile badge", "Theme sound packs", "Custom cursor skins"],
+        perks: ["Typing prefix · avatar ring", "Cursor skins · sound packs", "5 saved video bg slots"],
         priceLabel: "$4 / month"
     },
     {
         tier: Tier.MAXXER_PLUS,
         bracketColor: "#55FFFF",
         plusColor: null,
-        perks: ["Video backgrounds", "Custom theme upload", "Priority support"],
-        priceLabel: "$7 / month"
+        perks: [
+            "Video backgrounds · 3 exclusive themes",
+            "Member list name glow",
+            "Custom mention chime · popout banner"
+        ],
+        priceLabel: "$9 / month"
     },
     {
         tier: Tier.MAXXER_PLUS_PLUS,
         bracketColor: "#FFAA00",
         plusColor: "#FF5555",
-        perks: ["Everything", "Beta features", "Tier badge in profile", "Founders' channel"],
-        priceLabel: "$12 / month"
+        perks: [
+            "Animated badge · custom presence text",
+            "Voice channel name color",
+            "Beta builds · plugin votes · About credit"
+        ],
+        priceLabel: "$17 / month"
     }
 ];
 
@@ -123,7 +131,7 @@ export function DiscordmaxxerVipCard() {
 
     const sub =
         currentTier === Tier.MAXXER_PLUS_PLUS
-            ? "Every tier-locked feature is unlocked. Founders' channel access active."
+            ? "Every tier-locked feature is unlocked. Thanks for going MAXXER++."
             : nextVisual
                 ? `Next: ${TIER_LABELS[nextVisual.tier]} — ${nextVisual.perks.slice(0, 2).join(", ")}.`
                 : "";
@@ -254,6 +262,74 @@ export function DiscordmaxxerVipCard() {
                     {ctaText} →
                 </a>
             )}
+
+            {/* Founder strip — Hypixel-style scarcity slot. 33 ever, never reissued.
+                Pays $67 once, gets a numbered # badge (hover: "Founder badge"),
+                1 month MAXXER++ free + a 1-month MAXXER++ gift code, plus
+                MAXXER++ price-locked at $12/mo for life (immune to future raises). */}
+            <div style={{
+                position: "relative",
+                marginTop: "4px",
+                padding: "14px 16px",
+                borderRadius: "10px",
+                background: "linear-gradient(135deg, rgba(243,175,25,0.12) 0%, rgba(255,85,85,0.10) 100%)",
+                border: "1px solid rgba(243,175,25,0.45)",
+                boxShadow: "0 0 0 1px rgba(243,175,25,0.18) inset, 0 6px 22px rgba(243,175,25,0.18)"
+            }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                    <span style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "44px",
+                        height: "44px",
+                        borderRadius: "50%",
+                        background: "radial-gradient(circle at 30% 30%, #FFD27A, #C68A1A 60%, #5A3508 100%)",
+                        boxShadow: "0 0 14px rgba(255,170,0,0.6), inset 0 0 6px rgba(255,255,255,0.35)",
+                        fontFamily: '"Tungsten Bold","Bebas Neue","Oswald","Arial Black",sans-serif',
+                        fontSize: "18px",
+                        fontWeight: 800,
+                        color: "#1a0e02",
+                        letterSpacing: "0.02em",
+                        flexShrink: 0
+                    }} title="Founder badge">
+                        #
+                    </span>
+                    <div style={{ flex: 1, minWidth: "200px" }}>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFD580", letterSpacing: "0.01em" }}>
+                            Founder · 33 ever, never reissued
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#cbd0e0", marginTop: "3px", lineHeight: 1.4 }}>
+                            $67 one-time → numbered # badge · 1 mo MAXXER++ free · 1-mo gift code for a friend ·
+                            <strong style={{ color: "#FFD27A" }}> MAXXER++ at $12/mo for life</strong> (price-locked).
+                        </div>
+                    </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "12px", flexWrap: "wrap" }}>
+                    <a
+                        href="https://discordmaxxer.dev/founder"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        style={{
+                            padding: "8px 16px",
+                            borderRadius: "6px",
+                            fontSize: "12.5px",
+                            fontWeight: 700,
+                            color: "#1a0e02",
+                            background: "linear-gradient(135deg, #FFD27A, #FFAA00)",
+                            textDecoration: "none",
+                            boxShadow: "0 0 16px rgba(255,170,0,0.45)",
+                            letterSpacing: "0.04em",
+                            textTransform: "uppercase"
+                        }}
+                    >
+                        Claim a Founder slot →
+                    </a>
+                    <span style={{ fontSize: "11px", color: "#8a91a3", fontFamily: 'ui-monospace,Menlo,Consolas,monospace' }}>
+                        Hover the # to confirm: "Founder badge"
+                    </span>
+                </div>
+            </div>
         </div>
     );
 }

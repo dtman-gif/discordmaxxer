@@ -36,6 +36,11 @@ export interface ClaimBinding {
     lastValidatedAt: number;
     /** Unix ms when the original claim happened. */
     claimedAt: number;
+    /** Founder slot number 1-33 if this code came from the Founder pool;
+     *  undefined for regular MAXX-* codes. Set by the worker on first claim
+     *  via a sequential KV counter; preserved in the local cache so the
+     *  TierFlair plugin (v0.6.1+) can render the # badge without a round-trip. */
+    founderNumber?: number;
 }
 
 export const OFFLINE_TRUST_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -60,6 +65,10 @@ export interface ClaimResult {
     status?: "claimed" | "idempotent";
     error?: string;
     boundHwid?: string;
+    /** When the worker recognises a Founder code, it assigns the next
+     *  sequential number (1-33) and returns it here. Stored in the
+     *  ClaimBinding for permanent display by the TierFlair plugin. */
+    founderNumber?: number;
 }
 
 /** First-time claim or idempotent re-claim against the worker. */
@@ -72,7 +81,12 @@ export async function claimAgainstWorker(code: string, hwid: string): Promise<Cl
         });
         const body = await res.json().catch(() => ({}));
         if (res.ok && body?.ok) {
-            return { ok: true, status: body.status, boundHwid: body.boundHwid };
+            return {
+                ok: true,
+                status: body.status,
+                boundHwid: body.boundHwid,
+                founderNumber: typeof body.founderNumber === "number" ? body.founderNumber : undefined
+            };
         }
         return { ok: false, error: body?.error || `http ${res.status}`, boundHwid: body?.boundHwid };
     } catch (e: any) {
