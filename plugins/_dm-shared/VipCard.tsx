@@ -300,7 +300,7 @@ export function DiscordmaxxerVipCard() {
                             Founder · 33 ever, never reissued
                         </div>
                         <div style={{ fontSize: "12px", color: "#cbd0e0", marginTop: "3px", lineHeight: 1.4 }}>
-                            $67 one-time → numbered # badge · 1 mo MAXXER++ free · 1-mo gift code for a friend ·
+                            $67 one-time → your own numbered badge · 1 mo MAXXER++ free · 1-mo gift code for a friend ·
                             <strong style={{ color: "#FFD27A" }}> MAXXER++ at $12/mo for life</strong> (price-locked).
                         </div>
                     </div>
