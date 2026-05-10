@@ -30,6 +30,7 @@ const SVG = resolve(ROOT, "build", "icon.svg");
 const ICO = resolve(ROOT, "build", "icon.ico");
 const TRAY_PNG = resolve(ROOT, "static", "tray", "tray.png");
 const TRAY_UNREAD_PNG = resolve(ROOT, "static", "tray", "trayUnread.png");
+const TASKBAR_PNG = resolve(ROOT, "static", "taskbar", "taskbar.png");
 
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
 
@@ -101,6 +102,17 @@ const trayUnreadPng = await makeSharp(traySrc, 512)
     .toBuffer();
 await writeFile(TRAY_UNREAD_PNG, trayUnreadPng);
 console.log(`[regenIcons] wrote ${TRAY_UNREAD_PNG} (${trayUnreadPng.length} bytes)`);
+
+// Taskbar runtime override icon (Win32 BrowserWindow.setIcon). 256x256 from
+// the no-bullet-holes tray-source so the taskbar/Alt-Tab thumbnail doesn't
+// show bullet-hole noise. The shortcut/exe icon (build/icon.ico) keeps the
+// bullet-holes form via the main source. See src/main/mainWindow.ts.
+const taskbarPng = await makeSharp(traySrc, 512)
+    .resize(256, 256)
+    .png()
+    .toBuffer();
+await writeFile(TASKBAR_PNG, taskbarPng);
+console.log(`[regenIcons] wrote ${TASKBAR_PNG} (${taskbarPng.length} bytes)`);
 
 console.log("\n.icns + trayTemplate.png generation deferred to v0.2 (Mac target). For Mac:");
 console.log("  - install iconutil or use https://github.com/idesis-gmbh/png2icons");

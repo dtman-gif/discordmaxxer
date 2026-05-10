@@ -10,6 +10,7 @@ import {
     BrowserWindowConstructorOptions,
     Menu,
     MenuItemConstructorOptions,
+    nativeImage,
     nativeTheme,
     Rectangle,
     screen,
@@ -17,6 +18,7 @@ import {
 } from "electron";
 import { join } from "path";
 import { IpcCommands, IpcEvents } from "shared/IpcEvents";
+import { STATIC_DIR } from "shared/paths";
 import { isTruthy } from "shared/utils/guards";
 import { once } from "shared/utils/once";
 import type { SettingsStore } from "shared/utils/SettingsStore";
@@ -376,6 +378,20 @@ function createMainWindow() {
     removeVencordSettingsListeners();
 
     const win = (mainWin = new BrowserWindow(buildBrowserWindowOptions()));
+
+    // Override the runtime taskbar icon on Windows with the no-bullet-holes
+    // horror-Clyde so the taskbar/Alt-Tab thumbnail doesn't show bullet-hole
+    // noise at small render sizes. The shortcut/.exe icon stays as the
+    // bullet-holes version (embedded in build/icon.ico via electron-builder),
+    // so the Start menu / Explorer icon keeps its full character.
+    if (process.platform === "win32") {
+        try {
+            const taskbarIcon = nativeImage.createFromPath(join(STATIC_DIR, "taskbar", "taskbar.png"));
+            if (!taskbarIcon.isEmpty()) win.setIcon(taskbarIcon);
+        } catch (e) {
+            console.warn("[mainWindow] failed to set runtime taskbar icon:", e);
+        }
+    }
 
     win.setMenuBarVisibility(false);
     if (process.platform === "darwin" && Settings.store.customTitleBar) win.setWindowButtonVisibility(false);

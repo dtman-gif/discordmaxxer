@@ -348,6 +348,13 @@ const PATCHES = [
             'import { SettingsTab, wrapTab } from "@components/settings/tabs/BaseTab";'
     },
     // Replace the entire isDonor ternary (two SpecialCards) with our card.
+    // CRITICAL: this find string MUST match the upstream Vencord v1.14.13
+    // source verbatim — earlier versions of this patch matched a stale
+    // post-patched form that only existed in cached local vencord-src
+    // checkouts, so it silently no-op'd in CI builds and shipped the
+    // upstream "Please consider supporting the development of Vencord"
+    // card to v0.5.0–v0.5.6 users. Verified 2026-05-09 against
+    // github.com/Vendicated/Vencord/blob/v1.14.13/src/components/settings/tabs/vencord/index.tsx
     {
         file: "src/components/settings/tabs/vencord/index.tsx",
         find:
@@ -355,22 +362,22 @@ const PATCHES = [
             '                ? (\n' +
             '                    <SpecialCard\n' +
             '                        title="Donations"\n' +
-            '                        subtitle="Thank you for going VIP."\n' +
-            '                        description="Your perks are unlocked automatically. Reach support via the Discordmaxxer Discord."\n' +
-            '                        cardImage=""\n' +
-            '                        backgroundImage=""\n' +
-            '                        backgroundColor="#1a3a1a"\n' +
+            '                        subtitle="Thank you for donating!"\n' +
+            '                        description="You can manage your perks at any time by messaging @vending.machine."\n' +
+            '                        cardImage={VENNIE_DONATOR_IMAGE}\n' +
+            '                        backgroundImage={DONOR_BACKGROUND_IMAGE}\n' +
+            '                        backgroundColor="#ED87A9"\n' +
             '                    >\n' +
             '                        <DonateButtonComponent />\n' +
             '                    </SpecialCard>\n' +
             '                )\n' +
             '                : (\n' +
             '                    <SpecialCard\n' +
-            '                        title="Get more out of Discordmaxxer"\n' +
-            '                        description="Unlock VIP themes, video backgrounds, and tier-locked plugins. Visit discordmaxxer.dev/vip for the full ladder."\n' +
-            '                        cardImage=""\n' +
-            '                        backgroundImage=""\n' +
-            '                        backgroundColor="#1a0e2e"\n' +
+            '                        title="Support the Project"\n' +
+            '                        description="Please consider supporting the development of Vencord by donating!"\n' +
+            '                        cardImage={donateImage}\n' +
+            '                        backgroundImage={DONOR_BACKGROUND_IMAGE}\n' +
+            '                        backgroundColor="#c3a3ce"\n' +
             '                    >\n' +
             '                        <DonateButtonComponent />\n' +
             '                    </SpecialCard>\n' +
