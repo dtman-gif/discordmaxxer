@@ -510,6 +510,25 @@ const PATCHES = [
             '    // Discordmaxxer VIP claim worker (shared with optimizationmaxxing).\n' +
             '    "optmaxxing-vip.maxxtopia.workers.dev": ConnectSrc,\n};'
     },
+    // VideoBackground plugin (MAXXER+ feature) lets users pick an arbitrary
+    // HTTPS video URL as their Discord background. Discord's base CSP locks
+    // media-src down hard so external video URLs 404 with MEDIA_ERR_NETWORK.
+    // We open media-src to all HTTPS sources — render-only directive, no
+    // exfiltration risk, narrow scope.
+    {
+        file: "src/main/csp/index.ts",
+        find:
+            '        for (const directive of ["style-src", "connect-src", "img-src", "font-src", "media-src", "worker-src"]) {\n' +
+            '            pushDirective(directive, "blob:", "data:", "vencord:", "vesktop:");\n' +
+            '        }',
+        replace:
+            '        for (const directive of ["style-src", "connect-src", "img-src", "font-src", "media-src", "worker-src"]) {\n' +
+            '            pushDirective(directive, "blob:", "data:", "vencord:", "vesktop:");\n' +
+            '        }\n' +
+            '        // Discordmaxxer: VideoBackground plugin needs arbitrary HTTPS\n' +
+            '        // video URLs in media-src so users can use any video CDN.\n' +
+            '        pushDirective("media-src", "https:");'
+    },
     // No-op the donor-badge loader. With DonorBadges always empty,
     // getDonorBadges(userId) returns undefined for every user — neither the
     // donor badge nor its "Please consider supporting Vencord" modal ever

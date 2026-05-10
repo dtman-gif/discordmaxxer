@@ -38,14 +38,54 @@ let localBlobUrl: string | null = null;
 function buildCss() {
     const opacity = Math.max(0, Math.min(100, settings.store.opacity)) / 100;
     const blur = Math.max(0, Math.min(40, settings.store.blur));
+    const sidebarAlpha = Math.max(0, Math.min(100, settings.store.sidebarOpacity)) / 100;
     return `
-        /* Make Discord's main backgrounds transparent so the video shows through. */
-        :root, body, [class*="appMount"], [class*="app-"] > [class*="layers"] > [class*="layer"]:first-child {
-            background-color: transparent !important;
+        /* Override Discord's themed background CSS variables so the chat
+           area shows the video through. Sidebars stay semi-opaque (driven
+           by sidebarOpacity setting) for text readability. */
+        :root,
+        .theme-dark,
+        .theme-light,
+        .theme-darker,
+        .visual-refresh {
+            --background-primary: transparent !important;
+            --bg-overlay-chat: transparent !important;
+            --bg-overlay-app-frame: transparent !important;
+            --bg-base-primary: transparent !important;
+            --bg-base-secondary: rgba(0, 0, 0, ${sidebarAlpha * 0.6}) !important;
+            --bg-base-tertiary: rgba(0, 0, 0, ${sidebarAlpha * 0.7}) !important;
+            --background-secondary: rgba(0, 0, 0, ${sidebarAlpha * 0.55}) !important;
+            --background-secondary-alt: rgba(0, 0, 0, ${sidebarAlpha * 0.65}) !important;
+            --background-tertiary: rgba(0, 0, 0, ${sidebarAlpha * 0.7}) !important;
+            --background-floating: rgba(0, 0, 0, ${sidebarAlpha * 0.85}) !important;
+            --bg-overlay-3: rgba(0, 0, 0, ${sidebarAlpha * 0.4}) !important;
+            --bg-overlay-floating: rgba(0, 0, 0, ${sidebarAlpha * 0.85}) !important;
         }
-        body {
+
+        /* Class-selector fallback for the structural divs Discord paints
+           backgrounds on directly (in case a future Discord update stops
+           honoring the variables in some places). */
+        body,
+        html,
+        [class^="appMount"],
+        [class*=" appMount"],
+        [class^="app-"],
+        [class*=" app-"],
+        [class^="layers"],
+        [class*=" layers"],
+        [class^="layer"]:first-child,
+        [class*=" layer"]:first-child,
+        [class^="bg-"],
+        [class*=" bg-"],
+        [class*="container"][class*="root"],
+        [class*="base-"][class*="base"],
+        [class^="chat"][class*="chat"] > [class*="content"],
+        [class*="chatContent"] {
             background: transparent !important;
+            background-color: transparent !important;
+            background-image: none !important;
         }
+
         #${VIDEO_ID} {
             position: fixed;
             inset: 0;
@@ -53,7 +93,12 @@ function buildCss() {
             height: 100vh;
             object-fit: cover;
             object-position: center;
-            z-index: -1;
+            /* z-index 0 + position: fixed puts the video at the bottom of
+               its stacking context; Discord's chrome (z-index: auto / >0)
+               paints over it. Using 0 instead of -1 because some Discord
+               wrappers create stacking contexts that hide negative z-index
+               children entirely. */
+            z-index: 0;
             opacity: ${opacity};
             filter: blur(${blur}px);
             pointer-events: none;
@@ -105,23 +150,52 @@ function tearDownVideo() {
 
 function refresh() {
     if (!hasTier(REQUIRED_TIER)) {
+        console.log("[VideoBackground] refresh: tier check failed (need MAXXER+, got tier from claim cache or hardcoded list)");
         tearDownVideo();
         return;
     }
     if (!settings.store.enable) {
+        console.log("[VideoBackground] refresh: plugin disabled in settings");
         tearDownVideo();
         return;
     }
-    if (!activeUrl()) {
+    const url = activeUrl();
+    if (!url) {
+        console.log("[VideoBackground] refresh: no video URL or local file picked");
         tearDownVideo();
         return;
     }
     videoEl = ensureVideoEl();
+    console.log("[VideoBackground] refresh: video element in DOM, src =", url.slice(0, 80));
     applyVideoSettings();
-    videoEl.play().catch(e => {
-        console.warn("[VideoBackground] play() failed:", e);
+
+    // Surface the load lifecycle so the user can tell from devtools console
+    // whether the video resource itself fails (CSP / CORS / 404 / format).
+    videoEl.onloadeddata = () => console.log("[VideoBackground] loadeddata — video has frames");
+    videoEl.onerror = () => {
+        const code = videoEl?.error?.code;
+        const msg = videoEl?.error?.message ?? "unknown";
+        const codeLabels: Record<number, string> = {
+            1: "MEDIA_ERR_ABORTED",
+            2: "MEDIA_ERR_NETWORK (CSP/CORS/404)",
+            3: "MEDIA_ERR_DECODE (codec)",
+            4: "MEDIA_ERR_SRC_NOT_SUPPORTED (format/CSP)"
+        };
+        console.warn(`[VideoBackground] error ${code} (${codeLabels[code ?? -1] ?? "?"}):`, msg);
         Toasts.show({
-            message: `Video failed to play — check URL/CORS. ${e?.message ?? ""}`,
+            message: `Video failed: ${codeLabels[code ?? -1] ?? "unknown"}. Open devtools (Ctrl+Shift+I) for details.`,
+            type: Toasts.Type.FAILURE,
+            id: Toasts.genId(),
+            options: { duration: 6000, position: Toasts.Position.TOP }
+        });
+    };
+
+    videoEl.play().then(() => {
+        console.log("[VideoBackground] play() resolved — video is playing");
+    }).catch(e => {
+        console.warn("[VideoBackground] play() rejected:", e);
+        Toasts.show({
+            message: `Play blocked — try toggling the plugin off+on once. ${e?.message ?? ""}`,
             type: Toasts.Type.FAILURE,
             id: Toasts.genId(),
             options: { duration: 4000, position: Toasts.Position.TOP }
@@ -237,6 +311,16 @@ const settings = definePluginSettings({
         description: "Blur in pixels (0–40). Higher = softer background, easier on the eyes during heavy chat.",
         default: 0,
         markers: [0, 4, 8, 16, 24, 40],
+        onChange: () => {
+            if (style) style.textContent = buildCss();
+        }
+    },
+    sidebarOpacity: {
+        type: OptionType.SLIDER,
+        description:
+            "Sidebar / chat-list darkness (0–100). 0 = fully transparent (video shows everywhere), 100 = stock Discord opaque chrome. ~70 keeps text readable.",
+        default: 70,
+        markers: [0, 25, 50, 70, 100],
         onChange: () => {
             if (style) style.textContent = buildCss();
         }
