@@ -40,6 +40,7 @@ import { isLinux, isWindows } from "renderer/utils";
 import {
     getActiveWinAudioSession,
     replaceScreenShareAudioTrack,
+    startWinAudioExcludeSelfSession,
     startWinAudioProcessSession,
     startWinAudioSession,
     type WinAudioSession
@@ -199,11 +200,19 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                             }
                         }
 
-                        // winaudio paths (Windows). Per-output-device OR per-
-                        // process loopback. Capture is started BEFORE we
-                        // resolve, so the WASAPI loop is already emitting PCM
-                        // by the time Discord wires up its RTCPeerConnection.
-                        // Track replacement is a poll-with-retry below.
+                        // winaudio paths (Windows). Three modes — process-
+                        // include (pick one app), per-device loopback (pick
+                        // an output endpoint), or the new default: system-
+                        // mix loopback EXCLUDING Discordmaxxer's own process
+                        // tree. The exclude-self mode fixes the self-echo
+                        // bug where the streamer's loopback was re-capturing
+                        // incoming Discord voice playback and feeding it
+                        // back through the screenshare audio track.
+                        //
+                        // Capture is started BEFORE we resolve, so the
+                        // WASAPI loop is already emitting PCM by the time
+                        // Discord wires up its RTCPeerConnection. Track
+                        // replacement is a poll-with-retry below.
                         let pendingWinAudio: WinAudioSession | null = null;
                         if (isWindows && v.audio) {
                             try {
@@ -214,6 +223,14 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                                     );
                                 } else if (v.windowsAudioDeviceId) {
                                     pendingWinAudio = await startWinAudioSession(v.windowsAudioDeviceId);
+                                } else {
+                                    // "System default" mode — capture system mix
+                                    // minus Discordmaxxer's own playback so we
+                                    // don't re-broadcast incoming voice audio.
+                                    // Requires Win10 1903+; on older Windows the
+                                    // catch falls through to Electron's stock
+                                    // loopback (which is what v0.7.3 did anyway).
+                                    pendingWinAudio = await startWinAudioExcludeSelfSession();
                                 }
                             } catch (e) {
                                 logger.error("[winaudio] start failed — falling back to default loopback:", e);
@@ -559,7 +576,7 @@ function StreamSettingsUi({
     );
 }
 
-interface WinAudioSession {
+interface WinAudioAppInfo {
     pid: number;
     processName: string;
     displayName: string;
@@ -593,7 +610,7 @@ function AudioSourcePickerWindows({
             const r = await VesktopNative.winAudio.listSessions();
             return r.ok ? r.sessions : [];
         },
-        { fallbackValue: [] as WinAudioSession[], deps: [] }
+        { fallbackValue: [] as WinAudioAppInfo[], deps: [] }
     );
 
     return (
@@ -602,7 +619,7 @@ function AudioSourcePickerWindows({
                 <Heading tag="h5">Audio source (Windows)</Heading>
                 <div className={cl("option-radios")} style={{ marginTop: 6 }}>
                     <label className={cl("option-radio")} data-checked={mode === "default"}>
-                        <Span weight="bold">System default</Span>
+                        <Span weight="bold">System default (no echo)</Span>
                         <input
                             className={cl("option-input")}
                             type="radio"
@@ -671,7 +688,7 @@ function AudioSourcePickerWindows({
                             <Select
                                 options={[
                                     { label: "Pick an app…", value: "0", default: !processPid },
-                                    ...((sessions ?? []) as WinAudioSession[]).map(s => ({
+                                    ...((sessions ?? []) as WinAudioAppInfo[]).map(s => ({
                                         label: `${s.processName || `pid ${s.pid}`}${s.isActive ? " · playing" : ""}`,
                                         value: String(s.pid)
                                     }))

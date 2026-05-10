@@ -180,5 +180,15 @@ export const VesktopNative = {
                 { ok: false; error: string }
                 | { ok: true; format: { sampleRate: number; channels: number; bitsPerSample: number; isFloat: boolean } }
             >(IpcEvents.DM_WIN_AUDIO_START_PROCESS, targetPid, mode),
+        // v0.7.4 — convenience entry for the new "System default" path.
+        // Captures system audio EXCLUDING Discordmaxxer's process tree so
+        // incoming voice playback isn't re-broadcast through screenshare
+        // audio. Main supplies its own PID; renderer can't influence which
+        // tree gets excluded.
+        startExcludeSelf: () =>
+            invoke<
+                { ok: false; error: string }
+                | { ok: true; format: { sampleRate: number; channels: number; bitsPerSample: number; isFloat: boolean } }
+            >(IpcEvents.DM_WIN_AUDIO_START_EXCLUDE_SELF),
     }
 };

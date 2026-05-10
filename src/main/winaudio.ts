@@ -139,3 +139,30 @@ ipcMain.handle(
         }
     },
 );
+
+// v0.7.4 — "System default" loopback for screenshare audio defaults to
+// process-loopback EXCLUDING Discordmaxxer's own process tree. Fixes the
+// self-echo bug where Discord's incoming voice playback was being re-
+// captured by the streamer's system-output loopback and broadcast back
+// through the screenshare audio track. Renderer doesn't need to know our
+// PID — main supplies process.pid itself, so a malicious/buggy renderer
+// can't accidentally exclude the wrong process tree.
+ipcMain.handle(IpcEvents.DM_WIN_AUDIO_START_EXCLUDE_SELF, async event => {
+    const mod = load();
+    if (!mod) return { ok: false, error: loadError ?? "winaudio unavailable" };
+    try {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        const format = mod.startProcessLoopback(process.pid, "exclude", chunk => {
+            if (!win || win.isDestroyed()) return;
+            win.webContents.send(IpcEvents.DM_WIN_AUDIO_CHUNK, {
+                data: chunk.data,
+                frameCount: chunk.frameCount,
+                timestamp100ns: chunk.timestamp100ns.toString(),
+                silent: chunk.silent,
+            });
+        });
+        return { ok: true, format };
+    } catch (e: any) {
+        return { ok: false, error: String(e?.message || e) };
+    }
+});

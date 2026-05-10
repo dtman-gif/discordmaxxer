@@ -71,10 +71,26 @@ const PATCHES = [
         find: 'panelTitle: "Vencord Updater",',
         replace: 'panelTitle: "Updates",'
     },
+    // Cloud Sync feature removal — Discordmaxxer's landing copy promises
+    // "Zero outbound calls outside your messages." Vencord's Cloud Sync
+    // POSTs encrypted settings to api.vencord.dev when a user enables it,
+    // which violates that claim. Self-hosting the AGPL backend at
+    // github.com/Vencord/Backend is real ops weight for a feature whose
+    // primary value (cross-machine settings backup) barely applies — paid
+    // tiers are HWID-locked to one machine anyway. So we drop the sidebar
+    // registration entirely; esbuild tree-shakes the now-unreferenced
+    // CloudTab + CloudIcon imports out of the bundle.
     {
         file: "src/plugins/_core/settings.tsx",
-        find: 'panelTitle: "Vencord Cloud",',
-        replace: 'panelTitle: "Cloud Sync",'
+        find:
+            '            buildEntry({\n' +
+            '                key: "vencord_cloud",\n' +
+            '                title: "Cloud",\n' +
+            '                panelTitle: "Vencord Cloud",\n' +
+            '                Component: CloudTab,\n' +
+            '                Icon: CloudIcon\n' +
+            '            }),\n',
+        replace: ""
     },
     {
         file: "src/plugins/_core/settings.tsx",
@@ -188,13 +204,6 @@ const PATCHES = [
         file: "src/components/settings/tabs/vencord/NotificationSettings.tsx",
         find: '{ label: "Always use Vencord notifications", value: "never" },',
         replace: '{ label: "Always use Discordmaxxer notifications", value: "never" },'
-    },
-
-    // ── N. CloudTab — settings sync description ──
-    {
-        file: "src/components/settings/tabs/sync/CloudTab.tsx",
-        find: 'description="Save your Vencord settings to the cloud so you can easily keep them the same on all your devices"',
-        replace: 'description="Save your Discordmaxxer settings to the cloud so you can easily keep them the same on all your devices"'
     },
 
     // ── O. Updater — outdated-app card ──
@@ -387,12 +396,6 @@ const PATCHES = [
     },
 
     // ── Round 2 user-visible Vencord strings caught during rc3 testing ──
-    // CloudTab "Vencord comes with a cloud integration..."
-    {
-        file: "src/components/settings/tabs/sync/CloudTab.tsx",
-        find: 'Vencord comes with a cloud integration that adds goodies like settings sync across devices.',
-        replace: 'Discordmaxxer comes with a cloud integration that adds goodies like settings sync across devices.'
-    },
     // BackupAndRestoreTab.tsx — both Vencord references on the same panel
     {
         file: "src/components/settings/tabs/sync/BackupAndRestoreTab.tsx",
@@ -424,21 +427,6 @@ const PATCHES = [
         find: 'Settings for Notifications sent by Vencord.',
         replace: 'Settings for Notifications sent by Discordmaxxer.'
     },
-    // Cloud tab — strip the vencord.dev privacy-policy + Vencord/Backend repo
-    // links from the description paragraph. Keeps the cloud feature functional
-    // (default URL still points at api.vencord.dev which actually operates the
-    // backend) but removes user-visible vencord branding from the help text.
-    {
-        file: "src/components/settings/tabs/sync/CloudTab.tsx",
-        find:
-            '                It <Link href="https://vencord.dev/cloud/privacy">respects your privacy</Link>, and\n' +
-            '                the <Link href="https://github.com/Vencord/Backend">source code</Link> is AGPL 3.0 licensed so you\n' +
-            '                can host it yourself.',
-        replace:
-            '                The backend infrastructure is operated by the upstream plugin engine team\n' +
-            '                (AGPL 3.0, self-hostable). Disable below if you want zero outbound cloud calls.'
-    },
-
     // ── Round 4: full Vencord-name strip (user said "0 mention") ──────
     // Slash-command error toast pseudo-username
     {

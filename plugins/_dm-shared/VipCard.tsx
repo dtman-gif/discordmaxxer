@@ -42,7 +42,7 @@ const LADDER: TierVisual[] = [
         tier: Tier.MAXXER,
         bracketColor: "#55FF55",
         plusColor: null,
-        perks: ["Typing prefix · avatar ring", "Cursor skins · sound packs", "5 saved video bg slots"],
+        perks: ["Typing prefix · avatar ring", "5 animated cursor skins", "5 saved video bg slots"],
         priceLabel: "$4 / month"
     },
     {
@@ -52,7 +52,7 @@ const LADDER: TierVisual[] = [
         perks: [
             "Video backgrounds · 3 exclusive themes",
             "Member list name glow",
-            "Custom mention chime · popout banner"
+            "Profile popout banner stripe"
         ],
         priceLabel: "$9 / month"
     },

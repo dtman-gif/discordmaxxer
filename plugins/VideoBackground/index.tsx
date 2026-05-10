@@ -229,6 +229,34 @@ function refresh() {
             4: "MEDIA_ERR_SRC_NOT_SUPPORTED (format/CSP)"
         };
         console.warn(`[VideoBackground] error ${code} (${codeLabels[code ?? -1] ?? "?"}):`, msg);
+
+        // Hard failures (network / decode / unsupported) won't fix themselves on
+        // retry — auto-clear the broken source so we don't re-toast on every
+        // launch. ABORTED (1) is transient (typically a src swap mid-refresh).
+        const hardFailure = code === 2 || code === 3 || code === 4;
+        if (hardFailure) {
+            const wasBlob = !!localBlobUrl;
+            const brokenUrl = settings.store.videoUrl;
+            if (localBlobUrl) {
+                URL.revokeObjectURL(localBlobUrl);
+                localBlobUrl = null;
+            }
+            // Clearing videoUrl re-triggers refresh() via onChange, which
+            // silently tears down because activeUrl() is now empty.
+            settings.store.videoUrl = "";
+            tearDownVideo();
+            const sourceLabel = wasBlob
+                ? "(local file)"
+                : brokenUrl ? `"${brokenUrl.slice(0, 40)}${brokenUrl.length > 40 ? "…" : ""}"` : "";
+            Toasts.show({
+                message: `🛑 Video background — ${codeLabels[code] ?? "error"}. Cleared broken source ${sourceLabel}. Pick a new URL in VideoBackground settings or hit "Test with sample".`,
+                type: Toasts.Type.FAILURE,
+                id: Toasts.genId(),
+                options: { duration: 8000, position: Toasts.Position.TOP }
+            });
+            return;
+        }
+
         Toasts.show({
             message: `Video failed: ${codeLabels[code ?? -1] ?? "unknown"}. Open devtools (Ctrl+Shift+I) for details.`,
             type: Toasts.Type.FAILURE,

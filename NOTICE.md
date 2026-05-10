@@ -12,7 +12,6 @@ Discordmaxxer is a fork of [Vesktop](https://github.com/Vencord/Vesktop) by Vend
 - **Vesktop** (https://github.com/Vencord/Vesktop) — Vendicated and contributors. The Electron shell, screenshare-with-audio (venmic), tray, updater, Discord-domain CSP rewriting, and the bundled Vencord pipeline are all from upstream.
 - **Vencord** (https://github.com/Vendicated/Vencord) — Vendicated and contributors. Most of the user-facing features in Discordmaxxer are Vencord plugins enabled by default. Vencord ships ~169 plugins under GPL-3.0-or-later.
 - **arrpc** (https://github.com/OpenAsar/arrpc) — OpenAsar. Used for Discord RPC support on platforms where official Discord isn't installed.
-- **Material Design Sound Resources** (https://m2.material.io/design/sound/sound-resources.html) — Google. Four UI sounds (click, toggle, notify, error) bundled in `plugins/_dm-shared/sounds-pack.ts` are derived from the Material Design product sounds set. Licensed under CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
 
 ## Modifications (Discordmaxxer overlay)
 

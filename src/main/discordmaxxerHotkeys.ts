@@ -63,6 +63,11 @@ handle(IpcEvents.DM_UNREGISTER_GLOBAL_HOTKEY, (_e, id: string) => {
 });
 
 app.on("will-quit", () => {
+    // Single-instance lock bailout in index.ts calls app.quit() before
+    // whenReady() resolves, which fires will-quit on a never-ready app.
+    // globalShortcut throws if touched pre-ready, so skip cleanup in that
+    // case — there's nothing to unregister anyway.
+    if (!app.isReady()) return;
     globalShortcut.unregisterAll();
     registered.clear();
 });

@@ -22,10 +22,6 @@ unknown.png
 # Local-only demo / scratch
 _demo_work/
 
-# Audio audition artifacts — raw asset packs + audition HTML
-branding/sounds-candidates/
-branding/sounds-preview*.html
-
 # Test recordings (Diggy drops these for bug reports)
 *.mp4
 *.mov
