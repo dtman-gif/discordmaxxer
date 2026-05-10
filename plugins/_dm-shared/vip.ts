@@ -34,7 +34,7 @@ export const TIER_LABELS: Record<Tier, string> = {
 // Hardcoded supporter list. Replace with remote-fetched JSON in a later
 // session once we have the GitHub-Pages users.json infrastructure live.
 const HARDCODED_TIERS: Record<string, Tier> = {
-    "1501342589318594625": Tier.MAXXER_PLUS_PLUS // Diggy (project owner)
+    "426146621424664586": Tier.MAXXER_PLUS_PLUS // Diggy (project owner)
 };
 
 // Hardcoded admin list — only these users can use DiscordmaxxerGrant
@@ -44,7 +44,7 @@ const HARDCODED_TIERS: Record<string, Tier> = {
 // VipClaim binding. This is the structural fix against settings.json
 // editing for self-promotion.
 const ADMINS: ReadonlySet<string> = new Set([
-    "1501342589318594625" // Diggy
+    "426146621424664586" // Diggy
 ]);
 
 export function isAdmin(userId?: string): boolean {
@@ -110,10 +110,18 @@ export function getMyTier(): Tier {
     // for admins decorating OTHER users' badges. For self, use only:
     //   1. HARDCODED_TIERS  — admin baked into the build
     //   2. claim cache      — worker-validated VIP code binding
-    //   3. FREE
+    //   3. remote roster    — central source of truth (subscriptions +
+    //                        Discord-role auto-grants). Without this,
+    //                        users granted a tier via Discord role (no
+    //                        in-app code redemption) saw FREE for self
+    //                        and got the lockout on tier-gated features
+    //                        like VideoBackground.
+    //   4. FREE
     if (HARDCODED_TIERS[me.id] !== undefined) return HARDCODED_TIERS[me.id];
     const cached = tierFromClaimCache();
     if (cached !== Tier.FREE) return cached;
+    const roster = getRosterTier(me.id);
+    if (roster !== Tier.FREE) return roster;
     return Tier.FREE;
 }
 
