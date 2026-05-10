@@ -124,7 +124,7 @@ const CURSOR_CSS = `
         position: fixed;
         transform: translate(-50%, -50%);
         pointer-events: none;
-        z-index: 99999;
+        z-index: 2147483647;
     }
     .anime-cursor--rinnegan { filter: drop-shadow(0 0 8px rgba(155,77,202,0.7)) drop-shadow(0 0 16px rgba(123,45,142,0.4)); }
     .anime-cursor--rinnegan svg { animation: dmCursorRotateSlow 8s linear infinite; }
@@ -153,7 +153,7 @@ const CURSOR_CSS = `
         border-radius: 50%;
         background: radial-gradient(circle, rgba(255,255,255,0.55), rgba(245,245,245,0.3), rgba(230,230,230,0.1), transparent);
         pointer-events: none;
-        z-index: 99998;
+        z-index: 2147483646;
         animation: dmCursorSmokeDrift 1.5s ease-out forwards;
     }
     @keyframes dmCursorSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
