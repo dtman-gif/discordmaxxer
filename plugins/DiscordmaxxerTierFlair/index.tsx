@@ -111,10 +111,18 @@ function buildCss() {
     const ringRule = (tier: Tier, c: typeof COLORS[Tier.MAXXER]) =>
         showRing
             ? `
-        [data-dm-tier="${TIER_LABELS[tier]}"] [class*="avatar"]:not([class*="status"]),
-        [data-dm-tier="${TIER_LABELS[tier]}"][class*="avatar"]:not([class*="status"]) {
-            box-shadow: 0 0 0 1px ${c.ring}, 0 0 6px ${c.glow};
+        /* Avatar tier ring — target ONLY the foreignObject SVG element that
+           Discord wraps every avatar in for status-indicator compositing.
+           The previous selector \`[class*="avatar"]:not([class*="status"])\`
+           matched multiple nested wrappers per avatar (avatarHint outer,
+           avatar inner, image leaf) which all received the same box-shadow,
+           producing 3-4 stacked rings at slightly different radii — that's
+           what looked like ring misalignment. foreignObject is the single
+           outermost circular slot, naturally one-per-avatar, no nesting. */
+        [data-dm-tier="${TIER_LABELS[tier]}"] foreignObject {
+            box-shadow: 0 0 0 1.5px ${c.ring}, 0 0 6px ${c.glow};
             border-radius: 50%;
+            overflow: visible;
         }
     `
             : "";
