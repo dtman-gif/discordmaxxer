@@ -29,7 +29,12 @@ import { hasTier, Tier } from "../_dm-shared/vip";
 
 const SOCKET_ID = "Discordmaxxer";
 const REFRESH_MS = 60_000;
-const VIP_GATE = Tier.MAXXER_PLUS;
+// v0.6.0+ ladder: custom rich-presence text is the MAXXER++ marquee perk
+// (vanilla-visible flex — every friend sees whatever you write on their
+// friends list). FREE / MAXXER / MAXXER+ stay locked to brand defaults
+// because the broadcast is how we grow. MAXXER++ unlocks all fields and
+// the disable toggle.
+const VIP_GATE = Tier.MAXXER_PLUS_PLUS;
 const isCustomizable = () => hasTier(VIP_GATE);
 const isLocked = () => !isCustomizable();
 
@@ -137,14 +142,14 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description:
             "Show 'Playing Discordmaxxer' so friends see what client you use. " +
-            "Locked ON for FREE / MAXXER tier; MAXXER+ and above can disable.",
+            "Locked ON for FREE / MAXXER / MAXXER+ tier; MAXXER++ can disable.",
         default: true,
         disabled: isLocked,
         onChange: refresh
     },
     activityType: {
         type: OptionType.SELECT,
-        description: "How the activity displays: 'Playing X', 'Watching X', or 'Competing in X'. (MAXXER+)",
+        description: "How the activity displays: 'Playing X', 'Watching X', or 'Competing in X'. (MAXXER++)",
         default: "playing",
         options: [
             { label: "Playing Discordmaxxer", value: "playing", default: true },
@@ -156,21 +161,21 @@ const settings = definePluginSettings({
     },
     name: {
         type: OptionType.STRING,
-        description: "Activity name (the bold line in the user list). (MAXXER+)",
+        description: "Activity name (the bold line in the user list). (MAXXER++)",
         default: DEFAULT_NAME,
         disabled: isLocked,
         onChange: refresh
     },
     details: {
         type: OptionType.STRING,
-        description: "First details line under the activity name. (MAXXER+)",
+        description: "First details line under the activity name. (MAXXER++)",
         default: DEFAULT_DETAILS,
         disabled: isLocked,
         onChange: refresh
     },
     state: {
         type: OptionType.STRING,
-        description: "Second details line (shows under details). (MAXXER+)",
+        description: "Second details line (shows under details). (MAXXER++)",
         default: DEFAULT_STATE,
         disabled: isLocked,
         onChange: refresh
@@ -185,7 +190,7 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description:
             "Show a 'Get Discordmaxxer' button on your activity card (visible on profile hover). " +
-            "Forced ON for FREE / MAXXER tier.",
+            "Forced ON for FREE / MAXXER / MAXXER+ tier.",
         default: true,
         disabled: isLocked,
         onChange: refresh
@@ -197,8 +202,8 @@ export default definePlugin({
     description:
         "Broadcasts 'Playing Discordmaxxer' as your activity so friends see what client you use. " +
         "Standard rich-presence — no profile mutations. " +
-        "FREE / MAXXER tier: locked ON with brand defaults (it's how we grow). " +
-        "MAXXER+ tier: customize text, type, button, or disable entirely.",
+        "FREE / MAXXER / MAXXER+ tier: locked ON with brand defaults (it's how we grow). " +
+        "MAXXER++ tier: customize the activity name, details, state, type, button, or disable entirely — vanilla-visible flex (your whole friends list sees it).",
     authors: [{ name: "Diggy", id: 0n }],
     settings,
 

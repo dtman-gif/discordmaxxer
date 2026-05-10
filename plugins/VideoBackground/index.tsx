@@ -20,12 +20,59 @@ import { definePluginSettings } from "@api/Settings";
 import { managedStyleRootNode } from "@api/Styles";
 import { createAndAppendStyle } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, Toasts } from "@webpack/common";
+import { Button, React, Toasts } from "@webpack/common";
 
-import { hasTier, Tier, tierGateMessage } from "../_dm-shared/vip";
+import { getMyTier, hasTier, Tier, TIER_LABELS, tierGateMessage } from "../_dm-shared/vip";
 
 const REQUIRED_TIER = Tier.MAXXER_PLUS;
 const VIDEO_ID = "dm-video-bg";
+
+// Saved video bg slots — persisted in localStorage as JSON. Tier-gated max:
+//   FREE = 1 (funnel: gives a taste, friction to swap pushes upgrade)
+//   MAXXER = 5 · MAXXER+ = 20 · MAXXER++ = unlimited
+// Local file uploads (blob: URLs) stay runtime-only — those are scratchpad
+// content, can't survive relaunch anyway, so they don't count toward slots.
+const SLOTS_KEY = "dm-video-bg-slots";
+
+interface SavedSlot {
+    id: string;
+    name: string;
+    url: string;
+    opacity?: number;
+    blur?: number;
+    sidebarOpacity?: number;
+    savedAt: number;
+}
+
+function tierSlotCap(tier: Tier): number {
+    switch (tier) {
+        case Tier.MAXXER_PLUS_PLUS: return Infinity;
+        case Tier.MAXXER_PLUS: return 20;
+        case Tier.MAXXER: return 5;
+        default: return 1;
+    }
+}
+
+function readSlots(): SavedSlot[] {
+    try {
+        const raw = localStorage.getItem(SLOTS_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(s => s && typeof s.id === "string" && typeof s.url === "string" && s.url.length > 0);
+    } catch {
+        return [];
+    }
+}
+
+function writeSlots(slots: SavedSlot[]): void {
+    try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); }
+    catch (e) { console.warn("[VideoBackground] writeSlots failed:", e); }
+}
+
+function newSlotId(): string {
+    return `slot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 // Public test video — known-good HTTPS source, ~1MB MP4.
 const SAMPLE_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -266,6 +313,172 @@ function VideoControls() {
     );
 }
 
+function toast(message: string, type: any = Toasts.Type.MESSAGE, durationMs = 3000) {
+    Toasts.show({
+        message, type,
+        id: Toasts.genId(),
+        options: { duration: durationMs, position: Toasts.Position.TOP }
+    });
+}
+
+function SavedSlotsPanel() {
+    const [slots, setSlots] = React.useState<SavedSlot[]>(() => readSlots());
+    const [name, setName] = React.useState("");
+
+    const tier = getMyTier();
+    const cap = tierSlotCap(tier);
+    const capLabel = cap === Infinity ? "unlimited" : `${cap}`;
+    const tierName = TIER_LABELS[tier];
+    const atCap = slots.length >= cap;
+
+    const persist = (next: SavedSlot[]) => {
+        writeSlots(next);
+        setSlots(next);
+    };
+
+    const onSaveCurrent = () => {
+        const url = (settings.store.videoUrl ?? "").trim();
+        if (!url || !/^https?:\/\//i.test(url)) {
+            toast("Set a https:// video URL above before saving (local file uploads can't be saved to slots).", Toasts.Type.FAILURE);
+            return;
+        }
+        if (atCap) {
+            toast(`Slot cap reached (${cap}). Delete a slot or upgrade — current tier ${tierName}.`, Toasts.Type.FAILURE, 5000);
+            return;
+        }
+        const slot: SavedSlot = {
+            id: newSlotId(),
+            name: name.trim() || `Background ${slots.length + 1}`,
+            url,
+            opacity: settings.store.opacity,
+            blur: settings.store.blur,
+            sidebarOpacity: settings.store.sidebarOpacity,
+            savedAt: Date.now()
+        };
+        persist([...slots, slot]);
+        setName("");
+        toast(`💾 Saved "${slot.name}" — ${slots.length + 1}/${capLabel}`, Toasts.Type.SUCCESS);
+    };
+
+    const onLoad = (slot: SavedSlot) => {
+        if (localBlobUrl) {
+            URL.revokeObjectURL(localBlobUrl);
+            localBlobUrl = null;
+        }
+        settings.store.videoUrl = slot.url;
+        if (typeof slot.opacity === "number") settings.store.opacity = slot.opacity;
+        if (typeof slot.blur === "number") settings.store.blur = slot.blur;
+        if (typeof slot.sidebarOpacity === "number") settings.store.sidebarOpacity = slot.sidebarOpacity;
+        if (!settings.store.enable) settings.store.enable = true;
+        refresh();
+        toast(`▶ Playing "${slot.name}"`, Toasts.Type.SUCCESS);
+    };
+
+    const onDelete = (id: string) => {
+        const slot = slots.find(s => s.id === id);
+        persist(slots.filter(s => s.id !== id));
+        if (slot) toast(`🗑 Deleted "${slot.name}"`, Toasts.Type.MESSAGE);
+    };
+
+    const wrapStyle: React.CSSProperties = {
+        marginTop: 12,
+        padding: "12px 14px",
+        background: "rgba(226, 91, 255, 0.05)",
+        border: "1px solid rgba(226, 91, 255, 0.25)",
+        borderRadius: 8
+    };
+    const headerStyle: React.CSSProperties = {
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 10, flexWrap: "wrap", gap: 6
+    };
+    const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: "#fbefff", letterSpacing: 0.2 };
+    const counterStyle: React.CSSProperties = {
+        fontFamily: "ui-monospace, Menlo, Consolas, monospace",
+        fontSize: 11,
+        padding: "3px 8px",
+        borderRadius: 999,
+        background: atCap ? "rgba(255, 85, 85, 0.18)" : "rgba(85, 255, 255, 0.14)",
+        color: atCap ? "#ff8a8a" : "#9be7ff",
+        border: `1px solid ${atCap ? "rgba(255,85,85,0.3)" : "rgba(85,255,255,0.25)"}`
+    };
+    const inputStyle: React.CSSProperties = {
+        flex: 1,
+        minWidth: 140,
+        padding: "7px 10px",
+        borderRadius: 6,
+        border: "1px solid rgba(255,255,255,0.12)",
+        background: "rgba(0,0,0,0.3)",
+        color: "#fff",
+        fontSize: 12.5
+    };
+    const slotRow: React.CSSProperties = {
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "6px 8px", marginTop: 4,
+        background: "rgba(0,0,0,0.22)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 6
+    };
+    const slotName: React.CSSProperties = { flex: 1, fontSize: 12.5, color: "#dde2ee", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+    const slotUrl: React.CSSProperties = { fontSize: 10.5, color: "#8a91a3", fontFamily: "ui-monospace,Menlo,Consolas,monospace", marginLeft: 8 };
+
+    return (
+        <div style={wrapStyle}>
+            <div style={headerStyle}>
+                <div style={titleStyle}>💾 Saved video backgrounds</div>
+                <div style={counterStyle}>{slots.length} / {capLabel} · {tierName}</div>
+            </div>
+            {!hasTier(REQUIRED_TIER) && (
+                <div style={{ fontSize: 11.5, color: "#cbd0e0", marginBottom: 8, opacity: 0.85 }}>
+                    Saving is available at every tier (FREE saves 1). The video bg <em>feature</em> needs MAXXER+ to actually play — see settings above.
+                </div>
+            )}
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <input
+                    type="text"
+                    placeholder="Optional slot name (e.g. 'rainy night')"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") onSaveCurrent(); }}
+                    style={inputStyle}
+                    spellCheck={false}
+                />
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={onSaveCurrent} disabled={atCap}>
+                    💾 Save current URL
+                </Button>
+            </div>
+            {slots.length === 0 ? (
+                <div style={{ fontSize: 11.5, color: "#8a91a3", marginTop: 10, fontStyle: "italic" }}>
+                    No saved slots yet. Paste a URL in the field above, optionally name it, then hit Save.
+                </div>
+            ) : (
+                <div style={{ marginTop: 8 }}>
+                    {slots.map(slot => (
+                        <div key={slot.id} style={slotRow}>
+                            <span style={slotName} title={slot.url}>
+                                {slot.name}
+                                <span style={slotUrl}>{(() => {
+                                    try { return new URL(slot.url).host; } catch { return slot.url.slice(0, 30); }
+                                })()}</span>
+                            </span>
+                            <Button size={Button.Sizes.MIN} color={Button.Colors.GREEN} onClick={() => onLoad(slot)}>
+                                ▶ Load
+                            </Button>
+                            <Button size={Button.Sizes.MIN} color={Button.Colors.RED} onClick={() => onDelete(slot.id)}>
+                                ✕
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {atCap && cap !== Infinity && (
+                <div style={{ fontSize: 11.5, color: "#ff8a8a", marginTop: 8 }}>
+                    🔒 Slot cap reached. Delete a saved slot, or upgrade for more (MAXXER 5 · MAXXER+ 20 · MAXXER++ unlimited).
+                </div>
+            )}
+        </div>
+    );
+}
+
 const settings = definePluginSettings({
     enable: {
         type: OptionType.BOOLEAN,
@@ -324,6 +537,11 @@ const settings = definePluginSettings({
         onChange: () => {
             if (style) style.textContent = buildCss();
         }
+    },
+    savedSlots: {
+        type: OptionType.COMPONENT,
+        description: "",
+        component: SavedSlotsPanel
     },
     mute: {
         type: OptionType.BOOLEAN,
