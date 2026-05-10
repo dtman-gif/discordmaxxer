@@ -21,7 +21,7 @@
 
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { React, Toasts } from "@webpack/common";
+import { React, Toasts, UserStore } from "@webpack/common";
 
 import {
     bumpValidatedAt,
@@ -36,6 +36,15 @@ import {
     WORKER_URL
 } from "../_dm-shared/vipClaim";
 import { Tier, TIER_LABELS } from "../_dm-shared/vip";
+
+function currentUserId(): string | undefined {
+    try {
+        const me = UserStore?.getCurrentUser();
+        return me?.id;
+    } catch {
+        return undefined;
+    }
+}
 
 function toast(message: string, type: any = Toasts.Type.MESSAGE) {
     Toasts.show({ message, id: Toasts.genId(), type, options: { duration: 4000 } });
@@ -77,7 +86,7 @@ function ClaimPanel() {
         setClaiming(true);
         try {
             const norm = normalizeCode(code);
-            const r = await claimAgainstWorker(norm, hwid);
+            const r = await claimAgainstWorker(norm, hwid, currentUserId());
             if (r.ok) {
                 const now = Date.now();
                 const fresh: ClaimBinding = {
@@ -199,10 +208,14 @@ export default definePlugin({
         // - true:    binding still alive, refresh lastValidatedAt
         // - false:   worker rejected (claim wiped or hwid mismatch), wipe local
         // - null:    network unreachable, leave alone (24h cache trust kicks in)
+        //
+        // Pass the current userId so pre-2026-05-10 claims (stored before
+        // the userId field existed) get backfilled and start showing up in
+        // the public /roster — which drives cross-user TierFlair badges.
         const b = readBinding();
         if (!b) return;
         try {
-            const ok = await reValidateBinding(b);
+            const ok = await reValidateBinding(b, currentUserId());
             if (ok === true) writeBinding(bumpValidatedAt(b));
             else if (ok === false) writeBinding(null);
             // ok === null: leave cached binding intact, vip.ts handles 24h fade

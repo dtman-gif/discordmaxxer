@@ -24,21 +24,25 @@
 
 import { Tier } from "./vip";
 
-// Eventually swappable for a custom-domain URL once the hub site exists.
-// See docs/v0.2-tier-roster.md "Domain & hub integration" — this single
-// constant is the swap point.
-const ROSTER_URL =
-    "https://raw.githubusercontent.com/MaxxTopia/discordmaxxer/main/data/tiers.json";
+// Live worker /roster endpoint — same Cloudflare Worker that handles VIP
+// claims (see optimizationmaxxing/vip-worker/worker.js). Each /claim writes
+// to KV and invalidates the worker's in-memory roster cache, so a freshly
+// claimed user appears in the roster within seconds. Worker caches the
+// response for 5 min server-side; client caches for 1 hour locally.
+const ROSTER_URL = "https://optmaxxing-vip.maxxtopia.workers.dev/roster";
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const FETCH_TIMEOUT_MS = 8000;
 
 interface RosterEntry {
     tier: Tier;
-    via?: "owner" | "subscription" | "grant" | "comp";
+    via?: "owner" | "subscription" | "grant" | "comp" | "founder";
     grantedAt?: string;
     expiresAt?: string | null; // ISO 8601, null = never expires
     grantedBy?: string;
+    /** Founder slot 1-33 if the user claimed a FNDR-prefixed code. Drives
+     *  the gold # badge in profile popouts (TierFlair plugin). */
+    founderNumber?: number;
 }
 
 interface RosterPayload {
@@ -135,4 +139,14 @@ export function getRosterStatus(): { fetchedAt: number | null; userCount: number
         fetchedAt: cache?.fetchedAt ?? null,
         userCount: cache ? Object.keys(cache.users).length : 0
     };
+}
+
+/** Fetch the founder number assigned to a user, if any. Used by the
+ *  TierFlair plugin to render the gold # badge with the founder's slot. */
+export function getRosterFounderNumber(userId: string): number | undefined {
+    ensureFresh();
+    if (!cache) return undefined;
+    const entry = cache.users[userId];
+    if (!entry || isExpired(entry)) return undefined;
+    return entry.founderNumber;
 }

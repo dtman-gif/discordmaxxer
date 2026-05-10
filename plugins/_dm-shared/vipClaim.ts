@@ -71,13 +71,21 @@ export interface ClaimResult {
     founderNumber?: number;
 }
 
-/** First-time claim or idempotent re-claim against the worker. */
-export async function claimAgainstWorker(code: string, hwid: string): Promise<ClaimResult> {
+/** First-time claim or idempotent re-claim against the worker. The userId
+ *  is the Discord snowflake of the claiming user — required for the worker
+ *  to include this binding in the public /roster (drives cross-user tier
+ *  flair). Pass undefined only for backfill / re-validation paths where
+ *  the caller hasn't loaded the current user yet. */
+export async function claimAgainstWorker(code: string, hwid: string, userId?: string): Promise<ClaimResult> {
     try {
         const res = await fetch(WORKER_URL, {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ code: normalizeCode(code), hwid })
+            body: JSON.stringify({
+                code: normalizeCode(code),
+                hwid,
+                ...(userId ? { userId } : {})
+            })
         });
         const body = await res.json().catch(() => ({}));
         if (res.ok && body?.ok) {
@@ -99,9 +107,12 @@ export async function claimAgainstWorker(code: string, hwid: string): Promise<Cl
  *   - true if the worker confirms idempotent re-claim (binding is alive)
  *   - false if the worker rejects (claim was nuked or different hwid)
  *   - null if the network is unreachable (caller decides whether to trust cache)
+ *
+ * Pass the current Discord userId so pre-2026-05-10 claims (which were
+ * stored without userId) get backfilled and start showing up in /roster.
  */
-export async function reValidateBinding(b: ClaimBinding): Promise<boolean | null> {
-    const r = await claimAgainstWorker(b.code, b.hwid);
+export async function reValidateBinding(b: ClaimBinding, userId?: string): Promise<boolean | null> {
+    const r = await claimAgainstWorker(b.code, b.hwid, userId);
     if (r.ok && r.status === "idempotent") return true;
     if (r.ok && r.status === "claimed") return true; // first re-claim after worker KV reset
     if (!r.ok && r.error?.startsWith("network")) return null;
