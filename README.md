@@ -8,7 +8,7 @@
 
 A standalone Discord client with 30+ client-side enhancements pre-enabled, custom branding, and original plugins for tournament low-latency mode, mass-delete with safeguards, and GIF picker upgrades.
 
-7th project in the [maxxer suite](../).
+Part of the [Maxxtopia](https://maxxtopia.com) suite — native gaming utilities for the players who count frame times. Product page: **[maxxtopia.com/discordmaxxer](https://maxxtopia.com/discordmaxxer)** · Community: [discord.gg/S78eecbWdx](https://discord.gg/S78eecbWdx).
 
 **Status:** v0.1 — in development (P0 bootstrap complete).
 
