@@ -146,18 +146,6 @@ export async function startWinAudioProcessSession(
     return startSessionFromInit(() => VesktopNative.winAudio.startProcess(targetPid, mode));
 }
 
-/**
- * Start a winaudio loopback that captures the system audio mix EXCLUDING
- * Discordmaxxer's own process tree. This is the "System default" path
- * post-v0.7.4 — fixes the self-echo bug where the streamer's WASAPI
- * loopback would re-capture incoming voice playback and broadcast it back
- * through the screenshare audio track. Main process supplies the PID, so
- * the renderer can't influence which tree gets excluded.
- */
-export async function startWinAudioExcludeSelfSession(): Promise<WinAudioSession> {
-    return startSessionFromInit(() => VesktopNative.winAudio.startExcludeSelf());
-}
-
 async function startSessionFromInit(
     init: () => Promise<{ ok: true; format: CaptureFormat } | { ok: false; error: string }>
 ): Promise<WinAudioSession> {

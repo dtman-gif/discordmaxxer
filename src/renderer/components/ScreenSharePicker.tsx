@@ -40,7 +40,6 @@ import { isLinux, isWindows } from "renderer/utils";
 import {
     getActiveWinAudioSession,
     replaceScreenShareAudioTrack,
-    startWinAudioExcludeSelfSession,
     startWinAudioProcessSession,
     startWinAudioSession,
     type WinAudioSession
@@ -200,19 +199,25 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                             }
                         }
 
-                        // winaudio paths (Windows). Three modes — process-
-                        // include (pick one app), per-device loopback (pick
-                        // an output endpoint), or the new default: system-
-                        // mix loopback EXCLUDING Discordmaxxer's own process
-                        // tree. The exclude-self mode fixes the self-echo
-                        // bug where the streamer's loopback was re-capturing
-                        // incoming Discord voice playback and feeding it
-                        // back through the screenshare audio track.
+                        // winaudio paths (Windows). Two opt-in modes for
+                        // advanced setups — process-include (pick one app)
+                        // and per-device loopback (pick an output endpoint).
+                        // When neither is picked we let `streams.audio =
+                        // "loopback"` (set in main/screenShare.ts) flow
+                        // through unchanged, which is stock Discord
+                        // behavior: Electron's default-device WASAPI
+                        // loopback streams the full system mix.
                         //
-                        // Capture is started BEFORE we resolve, so the
-                        // WASAPI loop is already emitting PCM by the time
-                        // Discord wires up its RTCPeerConnection. Track
-                        // replacement is a poll-with-retry below.
+                        // v0.7.5 had an exclude-Discord-from-loopback
+                        // default here intended to solve the self-echo bug
+                        // (streamer's loopback re-broadcasting incoming
+                        // voice audio). It worked in theory but produced
+                        // SILENT capture on real rigs — listeners heard no
+                        // audio at all. Reverted to stock loopback in
+                        // v0.7.10; self-echo is now solved on the LISTENER
+                        // side via the DiscordmaxxerStreamMute plugin
+                        // (Ctrl+Shift+M to mute incoming screenshare audio
+                        // without affecting voice chat).
                         let pendingWinAudio: WinAudioSession | null = null;
                         if (isWindows && v.audio) {
                             try {
@@ -223,15 +228,9 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                                     );
                                 } else if (v.windowsAudioDeviceId) {
                                     pendingWinAudio = await startWinAudioSession(v.windowsAudioDeviceId);
-                                } else {
-                                    // "System default" mode — capture system mix
-                                    // minus Discordmaxxer's own playback so we
-                                    // don't re-broadcast incoming voice audio.
-                                    // Requires Win10 1903+; on older Windows the
-                                    // catch falls through to Electron's stock
-                                    // loopback (which is what v0.7.3 did anyway).
-                                    pendingWinAudio = await startWinAudioExcludeSelfSession();
                                 }
+                                // else: System default mode — leave the stock
+                                // Electron loopback in place, no replaceTrack.
                             } catch (e) {
                                 logger.error("[winaudio] start failed — falling back to default loopback:", e);
                             }
@@ -619,7 +618,7 @@ function AudioSourcePickerWindows({
                 <Heading tag="h5">Audio source (Windows)</Heading>
                 <div className={cl("option-radios")} style={{ marginTop: 6 }}>
                     <label className={cl("option-radio")} data-checked={mode === "default"}>
-                        <Span weight="bold">System default (no echo)</Span>
+                        <Span weight="bold">System default (stock Discord)</Span>
                         <input
                             className={cl("option-input")}
                             type="radio"
