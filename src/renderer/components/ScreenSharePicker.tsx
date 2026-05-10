@@ -37,21 +37,8 @@ import type { Dispatch, SetStateAction } from "react";
 import { addPatch } from "renderer/patches/shared";
 import { State, useSettings, useVesktopState } from "renderer/settings";
 import { isLinux, isWindows } from "renderer/utils";
-import {
-    getActiveWinAudioSession,
-    replaceScreenShareAudioTrack,
-    startWinAudioProcessSession,
-    startWinAudioSession,
-    type WinAudioSession
-} from "renderer/winaudioBridge";
 
 import { SimpleErrorBoundary } from "./SimpleErrorBoundary";
-
-interface WinAudioDevice {
-    id: string;
-    name: string;
-    isDefault: boolean;
-}
 
 const StreamResolutions = ["480", "720", "1080", "1440", "2160"] as const;
 const StreamFps = ["15", "30", "60"] as const;
@@ -76,22 +63,6 @@ interface StreamSettings {
     contentHint?: string;
     includeSources?: AudioSources;
     excludeSources?: AudioSources;
-    /**
-     * Windows-only — endpoint id from VesktopNative.winAudio.list(). When
-     * set + non-empty, screenshare audio is captured from that specific
-     * output device (per-device WASAPI loopback) instead of the system
-     * default. Empty / undefined = stock Electron loopback. See
-     * winaudioBridge.ts for the capture pipeline.
-     */
-    windowsAudioDeviceId?: string;
-    /**
-     * Windows-only — process id from VesktopNative.winAudio.listSessions().
-     * When set, screenshare audio is captured FROM that process tree
-     * (Process Loopback, Win10 1903+) — bypasses the system output mix
-     * entirely. Solves audio-mixer echo (Voicemeeter routing isn't in
-     * the capture path). Mutually exclusive with windowsAudioDeviceId.
-     */
-    windowsAudioProcessPid?: number;
 }
 
 export interface StreamPick extends StreamSettings {
@@ -102,58 +73,6 @@ interface Source {
     id: string;
     name: string;
     url: string;
-}
-
-interface WinAudioSessionLite {
-    pid: number;
-    processName: string;
-    displayName: string;
-    isActive: boolean;
-}
-
-// Auto-detect the audio session that owns a shared window. Matches OG
-// Discord behavior: capture audio per-shared-app instead of system-wide,
-// so Discord's own voice playback isn't included in the outgoing screenshare
-// audio track (= no self-echo for the listener). Heuristic match — window
-// titles and process names overlap loosely (e.g. window "Fortnite" vs
-// process "FortniteClient-Win64-Shipping.exe"). Returns null if no
-// confident match — caller falls back to stock Electron loopback.
-function findAudioSessionForWindow(
-    sessions: WinAudioSessionLite[],
-    windowName: string
-): WinAudioSessionLite | null {
-    const normalize = (s: string) =>
-        s.toLowerCase().replace(/\.exe$/, "").replace(/[^a-z0-9]/g, "");
-    const target = normalize(windowName);
-    if (!target) return null;
-
-    // Score every session against the window title. Process name match is
-    // weighted higher than display-name because process names are stable
-    // across runs while display names can be empty / generic.
-    const scored = sessions
-        .map(s => {
-            const proc = normalize(s.processName);
-            const disp = normalize(s.displayName);
-            let score = 0;
-            if (proc === target) score += 10;
-            else if (proc && (proc.includes(target) || target.includes(proc))) score += 4;
-            if (disp === target) score += 6;
-            else if (disp && (disp.includes(target) || target.includes(disp))) score += 2;
-            if (s.isActive) score += 1; // tie-breaker: currently playing audio
-            return { session: s, score };
-        })
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score);
-
-    if (scored.length > 0) return scored[0].session;
-
-    // No name match found. Last-resort heuristic: if there's exactly one
-    // session actively playing audio, that's almost certainly what the
-    // streamer wants to share.
-    const activeOnly = sessions.filter(s => s.isActive);
-    if (activeOnly.length === 1) return activeOnly[0];
-
-    return null;
 }
 
 export let currentSettings: StreamSettings | null = null;
@@ -215,21 +134,6 @@ if (isLinux) {
     });
 }
 
-if (isWindows) {
-    // Tear down winaudio capture + AudioContext when this user's
-    // screenshare ends. Mirrors the venmic cleanup above; same Vencord
-    // FluxDispatcher event.
-    onceReady.then(() => {
-        FluxDispatcher.subscribe("STREAM_CLOSE", ({ streamKey }: { streamKey: string }) => {
-            const owner = streamKey.split(":").at(-1);
-            if (owner !== UserStore.getCurrentUser().id) return;
-            const session = getActiveWinAudioSession();
-            if (!session) return;
-            session.stop().catch(e => console.warn("[winaudio] stop on STREAM_CLOSE failed:", e));
-        });
-    });
-}
-
 export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
     let didSubmit = false;
     return new Promise<StreamPick>((resolve, reject) => {
@@ -251,94 +155,7 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                             }
                         }
 
-                        // winaudio paths (Windows). Three modes, in priority
-                        // order:
-                        //   1. Process-include (user manually picked an app).
-                        //   2. Per-device loopback (user picked an output
-                        //      endpoint — for Voicemeeter / mixer setups).
-                        //   3. System default → tries to AUTO-DETECT the
-                        //      shared window's owning process and use
-                        //      process-include on that PID. Matches OG
-                        //      Discord's per-app audio capture so the
-                        //      listener doesn't hear their own voice echo
-                        //      back through the streamer's Discord playback.
-                        //      Falls back to stock Electron loopback if the
-                        //      auto-detect can't confidently match the
-                        //      window to an audio session.
-                        let pendingWinAudio: WinAudioSession | null = null;
-                        if (isWindows && v.audio) {
-                            try {
-                                if (v.windowsAudioProcessPid) {
-                                    pendingWinAudio = await startWinAudioProcessSession(
-                                        v.windowsAudioProcessPid,
-                                        "include"
-                                    );
-                                } else if (v.windowsAudioDeviceId) {
-                                    pendingWinAudio = await startWinAudioSession(v.windowsAudioDeviceId);
-                                } else if (v.id?.startsWith("window:")) {
-                                    // System-default mode + sharing a specific
-                                    // window — try to find the app whose
-                                    // audio we should capture. Falls through
-                                    // to stock loopback on no-match.
-                                    const picked = screens.find(s => s.id === v.id);
-                                    const windowName = picked?.name;
-                                    if (windowName) {
-                                        const sessionsResp = await VesktopNative.winAudio.listSessions();
-                                        if (sessionsResp.ok) {
-                                            const match = findAudioSessionForWindow(
-                                                sessionsResp.sessions,
-                                                windowName
-                                            );
-                                            if (match) {
-                                                logger.info(
-                                                    `[winaudio] auto-detected ${match.processName} ` +
-                                                    `(pid ${match.pid}) for shared window "${windowName}" ` +
-                                                    `— using process-include capture`
-                                                );
-                                                pendingWinAudio = await startWinAudioProcessSession(
-                                                    match.pid,
-                                                    "include"
-                                                );
-                                            } else {
-                                                logger.info(
-                                                    `[winaudio] no audio session matched window ` +
-                                                    `"${windowName}" — falling back to stock Electron ` +
-                                                    `loopback (full system audio capture)`
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
-                                // else: Entire-screen share → no single
-                                // process to scope to → stock loopback.
-                            } catch (e) {
-                                logger.error("[winaudio] start failed — falling back to default loopback:", e);
-                            }
-                        }
-
                         resolve(v);
-
-                        if (pendingWinAudio) {
-                            const me = UserStore.getCurrentUser().id;
-                            const track = pendingWinAudio.track;
-                            // Poll for the screenshare PC. Most negotiations
-                            // complete <500ms; cap at 5s before giving up. If we
-                            // never find the sender, the screenshare still works
-                            // — just on Electron's default loopback, not our
-                            // chosen device. Loud-warn so devtools shows it.
-                            (async () => {
-                                for (let i = 0; i < 20; i++) {
-                                    const ok = await replaceScreenShareAudioTrack(me, track);
-                                    if (ok) return;
-                                    await new Promise(r => setTimeout(r, 250));
-                                }
-                                logger.warn(
-                                    "[winaudio] gave up locating screenshare audio sender after 5s. " +
-                                    "Audio is still streaming via Electron's default loopback path; " +
-                                    "the per-device capture is running but unreplaced."
-                                );
-                            })();
-                        }
                     }}
                     close={() => {
                         props.onClose();
@@ -630,177 +447,7 @@ function StreamSettingsUi({
                     />
                 )}
 
-                {isWindows && settings.audio && (
-                    <AudioSourcePickerWindows
-                        deviceId={settings.windowsAudioDeviceId}
-                        processPid={settings.windowsAudioProcessPid}
-                        setDeviceId={(id) =>
-                            setSettings(s => ({
-                                ...s,
-                                windowsAudioDeviceId: id,
-                                windowsAudioProcessPid: id ? undefined : s.windowsAudioProcessPid
-                            }))
-                        }
-                        setProcessPid={(pid) =>
-                            setSettings(s => ({
-                                ...s,
-                                windowsAudioProcessPid: pid,
-                                windowsAudioDeviceId: pid ? undefined : s.windowsAudioDeviceId
-                            }))
-                        }
-                    />
-                )}
             </Card>
-        </div>
-    );
-}
-
-interface WinAudioAppInfo {
-    pid: number;
-    processName: string;
-    displayName: string;
-    isActive: boolean;
-}
-
-function AudioSourcePickerWindows({
-    deviceId,
-    processPid,
-    setDeviceId,
-    setProcessPid
-}: {
-    deviceId?: string;
-    processPid?: number;
-    setDeviceId: (id: string | undefined) => void;
-    setProcessPid: (pid: number | undefined) => void;
-}) {
-    const [mode, setMode] = useState<"default" | "device" | "app">(
-        processPid ? "app" : deviceId ? "device" : "default"
-    );
-
-    const [devices, _devErr, devLoading] = useAwaiter(
-        async () => {
-            const r = await VesktopNative.winAudio.list();
-            return r.ok ? r.devices : [];
-        },
-        { fallbackValue: [] as WinAudioDevice[], deps: [] }
-    );
-    const [sessions, _sErr, sessionsLoading, refreshSessions] = useAwaiter(
-        async () => {
-            const r = await VesktopNative.winAudio.listSessions();
-            return r.ok ? r.sessions : [];
-        },
-        { fallbackValue: [] as WinAudioAppInfo[], deps: [] }
-    );
-
-    return (
-        <div className={cl("audio-sources")} style={{ marginTop: 12 }}>
-            <section>
-                <Heading tag="h5">Audio source (Windows)</Heading>
-                <div className={cl("option-radios")} style={{ marginTop: 6 }}>
-                    <label className={cl("option-radio")} data-checked={mode === "default"}>
-                        <Span weight="bold">System default — Auto-mute my voice on screenshare</Span>
-                        <input
-                            className={cl("option-input")}
-                            type="radio"
-                            name="winaudio-mode"
-                            checked={mode === "default"}
-                            onChange={() => {
-                                setMode("default");
-                                setDeviceId(undefined);
-                                setProcessPid(undefined);
-                            }}
-                        />
-                    </label>
-                    <label className={cl("option-radio")} data-checked={mode === "device"}>
-                        <Span weight="bold">Specific output device</Span>
-                        <input
-                            className={cl("option-input")}
-                            type="radio"
-                            name="winaudio-mode"
-                            checked={mode === "device"}
-                            onChange={() => {
-                                setMode("device");
-                                setProcessPid(undefined);
-                            }}
-                        />
-                    </label>
-                    <label className={cl("option-radio")} data-checked={mode === "app"}>
-                        <Span weight="bold">Specific app (no echo)</Span>
-                        <input
-                            className={cl("option-input")}
-                            type="radio"
-                            name="winaudio-mode"
-                            checked={mode === "app"}
-                            onChange={() => {
-                                setMode("app");
-                                setDeviceId(undefined);
-                            }}
-                        />
-                    </label>
-                </div>
-
-                {mode === "device" && (
-                    <div style={{ marginTop: 10 }}>
-                        <SimpleErrorBoundary>
-                            <Select
-                                options={(devices ?? []).map((d: WinAudioDevice) => ({
-                                    label: d.isDefault ? `${d.name} · default` : d.name,
-                                    value: d.id,
-                                    default: d.isDefault
-                                }))}
-                                isSelected={(v: string) => v === (deviceId ?? "")}
-                                select={(v: string) => setDeviceId(v ? v : undefined)}
-                                serialize={String}
-                                popoutPosition="top"
-                                closeOnSelect={true}
-                            />
-                        </SimpleErrorBoundary>
-                        <Paragraph style={{ marginTop: 6, fontSize: 11.5, opacity: 0.75 }}>
-                            {devLoading ? "Loading audio outputs…" : "Captures from the chosen device's loopback. Useful when the wrong device is your Windows default."}
-                        </Paragraph>
-                    </div>
-                )}
-
-                {mode === "app" && (
-                    <div style={{ marginTop: 10 }}>
-                        <SimpleErrorBoundary>
-                            <Select
-                                options={[
-                                    { label: "Pick an app…", value: "0", default: !processPid },
-                                    ...((sessions ?? []) as WinAudioAppInfo[]).map(s => ({
-                                        label: `${s.processName || `pid ${s.pid}`}${s.isActive ? " · playing" : ""}`,
-                                        value: String(s.pid)
-                                    }))
-                                ]}
-                                isSelected={(v: string) => v === String(processPid ?? 0)}
-                                select={(v: string) => {
-                                    const n = parseInt(v, 10);
-                                    setProcessPid(Number.isFinite(n) && n > 0 ? n : undefined);
-                                }}
-                                serialize={String}
-                                popoutPosition="top"
-                                closeOnSelect={true}
-                            />
-                        </SimpleErrorBoundary>
-                        <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <Button variant="secondary" size={Button.Sizes.SMALL} onClick={refreshSessions}>
-                                <RestartIcon />
-                                Refresh
-                            </Button>
-                            <Span style={{ fontSize: 11, opacity: 0.7 }}>
-                                {sessionsLoading
-                                    ? "Loading…"
-                                    : (sessions?.length ?? 0) === 0
-                                        ? "No apps playing audio. Start the app + click Refresh."
-                                        : `${sessions?.length ?? 0} apps with audio sessions`}
-                            </Span>
-                        </div>
-                        <Paragraph style={{ marginTop: 6, fontSize: 11.5, opacity: 0.75 }}>
-                            Captures audio FROM the picked app (Win10 1903+ Process Loopback API). Bypasses your audio mixer entirely — Voicemeeter / VB-Cable routing isn't in the capture path, so viewers don't hear themselves echo back. This is what the official Discord client does.
-                        </Paragraph>
-                    </div>
-                )}
-            </section>
         </div>
     );
 }

@@ -33,15 +33,6 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
-            # winaudio = our native WASAPI per-output-device loopback
-            # module (packages/winaudio). pnpm install --frozen-lockfile
-            # only symlinks the workspace package; the .node binary is
-            # built via node-gyp in this step. Without this, the bundled
-            # app would import winaudio at runtime + crash with "Cannot
-            # find build/Release/winaudio.node".
-            - name: Build winaudio native module
-              run: pnpm buildWinAudio
-
             # Discordmaxxer ships a forked Vencord with 61 rebrand patches +
             # 11 custom plugins side-loaded into vencord-src/src/userplugins/.
             # The build pipeline (pnpm overlay:vencord) needs vencord-src to

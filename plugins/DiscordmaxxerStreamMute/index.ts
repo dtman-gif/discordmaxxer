@@ -49,8 +49,8 @@ function getEngine(): any {
 }
 
 // Bounded BFS for an RTCPeerConnection embedded inside a Discord connection
-// wrapper. Mirrors the same helper in winaudioBridge.ts — Discord's media
-// engine hides the underlying PC under different keys across versions.
+// wrapper. Discord's media engine hides the underlying PC under different
+// keys across versions, so we walk the object graph instead of guessing.
 function findPC(root: any, depth = 0, seen = new Set<any>()): RTCPeerConnection | undefined {
     if (!root || typeof root !== "object" || depth > 4 || seen.has(root)) return undefined;
     seen.add(root);
