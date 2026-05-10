@@ -189,12 +189,14 @@ function buildCss() {
            member row's username so MAXXER++ users light up gold while in VC.
            Discord uses [class*="voiceUser"] for the row and [class*="name"] /
            [class*="usernameInner"] for the username text. We scope by voice
-           context so we don't double-paint the existing member-list tint. */
+           context so we don't double-paint the existing member-list tint.
+           Selector value uses TIER_LABELS so it stays in sync with the
+           data-dm-tier attribute the DOM observer sets (= "MAXXER++"). */
         ${showVoiceColor ? `
-        [class*="voiceUser"][data-dm-tier="MAXXER_PLUS_PLUS"] [class*="name"],
-        [class*="voiceUser"][data-dm-tier="MAXXER_PLUS_PLUS"] [class*="username"],
-        [class*="voiceUser"] [data-dm-tier="MAXXER_PLUS_PLUS"] [class*="name"],
-        [class*="voiceUser"] [data-dm-tier="MAXXER_PLUS_PLUS"] [class*="username"] {
+        [class*="voiceUser"][data-dm-tier="${TIER_LABELS[Tier.MAXXER_PLUS_PLUS]}"] [class*="name"],
+        [class*="voiceUser"][data-dm-tier="${TIER_LABELS[Tier.MAXXER_PLUS_PLUS]}"] [class*="username"],
+        [class*="voiceUser"] [data-dm-tier="${TIER_LABELS[Tier.MAXXER_PLUS_PLUS]}"] [class*="name"],
+        [class*="voiceUser"] [data-dm-tier="${TIER_LABELS[Tier.MAXXER_PLUS_PLUS]}"] [class*="username"] {
             color: ${COLORS[Tier.MAXXER_PLUS_PLUS].name} !important;
             text-shadow: 0 0 6px ${COLORS[Tier.MAXXER_PLUS_PLUS].glow};
             ${animateMaxxerPP ? "animation: dm-shimmer-gold 2.8s ease-in-out infinite;" : ""}
@@ -204,11 +206,13 @@ function buildCss() {
         /* About credit — MAXXER++ only. Injects a "Discordmaxxer ++ supporter"
            line in the bio area of MAXXER++ users' profile popouts. Visible to
            any other Discordmaxxer user opening their popout. NOT a Discord
-           account mutation — pure client-side decoration, gated by roster. */
+           account mutation — pure client-side decoration, gated by roster.
+           Selector value uses TIER_LABELS to match the data-dm-tier value
+           the DOM observer sets (= "MAXXER++"). */
         ${showAboutCredit ? `
-        [class*="userPopout"]:has([data-dm-tier="MAXXER_PLUS_PLUS"]) [class*="bio"]::after,
-        [class*="userProfile"]:has([data-dm-tier="MAXXER_PLUS_PLUS"]) [class*="bio"]::after,
-        [class*="userPopout"]:has([data-dm-tier="MAXXER_PLUS_PLUS"]) [class*="userInfoSection"]:first-of-type::after {
+        [class*="userPopout"]:has([data-dm-tier="${TIER_LABELS[Tier.MAXXER_PLUS_PLUS]}"]) [class*="bio"]::after,
+        [class*="userProfile"]:has([data-dm-tier="${TIER_LABELS[Tier.MAXXER_PLUS_PLUS]}"]) [class*="bio"]::after,
+        [class*="userPopout"]:has([data-dm-tier="${TIER_LABELS[Tier.MAXXER_PLUS_PLUS]}"]) [class*="userInfoSection"]:first-of-type::after {
             content: "★ Discordmaxxer++ supporter";
             display: block;
             margin-top: 8px;
