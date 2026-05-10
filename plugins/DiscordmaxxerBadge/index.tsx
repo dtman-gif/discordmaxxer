@@ -24,6 +24,9 @@ import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { RestAPI, Toasts, UserStore } from "@webpack/common";
 
+import { getRosterTier, refreshRoster } from "../_dm-shared/roster";
+import { Tier } from "../_dm-shared/vip";
+
 // Profile-badge mark — v1 horror-Clyde, 96px PNG with TRANSPARENT background,
 // glyph cropped tight (no cream sticker frame, no padding) so the badge fills
 // its ~22-24px Discord popout slot edge-to-edge. The bullet-hole + red-eye
@@ -110,17 +113,22 @@ const settings = definePluginSettings({
     // Channel A — profile badge
     showOnOwnProfile: {
         type: OptionType.BOOLEAN,
-        description: "[Channel A] Show the DM badge on your own profile (visible to other Discordmaxxer users)",
+        description:
+            "[Channel A] Render the DM badge on YOUR OWN profile in YOUR OWN Discordmaxxer client. " +
+            "Note: this toggle is LOCAL-ONLY — it doesn't affect what other people see. The badge only renders inside Discordmaxxer (vanilla Discord doesn't show it). " +
+            "Visibility logic: any user found on the Discordmaxxer tier roster (= anyone who's redeemed a MAXXER / MAXXER+ / MAXXER++ / Founder code) automatically gets a badge on their profile when viewed from another Discordmaxxer client. " +
+            "Free-tier friends who haven't claimed a code aren't in the roster yet — paste their user IDs into 'extraUserIds' below to show their badge.",
         default: true
     },
     extraUserIds: {
         type: OptionType.STRING,
-        description: "[Channel A] Comma-separated additional user IDs to show the badge for",
+        description:
+            "[Channel A] Comma-separated additional user IDs to show the badge for. Use this to surface badges on free-tier Discordmaxxer friends who aren't in the tier roster. Right-click a user → 'Copy User ID' (requires Discord Developer Mode in Advanced settings).",
         default: ""
     },
     remoteListUrl: {
         type: OptionType.STRING,
-        description: "[Channel A] Optional URL returning a JSON array of user IDs (fetched once on plugin start)",
+        description: "[Channel A] Optional URL returning a JSON array of user IDs (fetched once on plugin start). Most users can leave this empty — the tier roster covers anyone who's claimed a code.",
         default: ""
     },
 
@@ -142,7 +150,9 @@ const settings = definePluginSettings({
     bioAppendOnce: {
         type: OptionType.BOOLEAN,
         description:
-            "[Channel C] APPLY ONCE — append the line below to your About Me. Will not duplicate if already present. Vanilla Discord users see this when they click your profile.",
+            "[Channel C] ⚠ TOS GRAY AREA — Discord's Community Guidelines forbid 'self-bots' (third-party clients that automate account-level actions). Flipping this toggle on sends ONE PATCH to /users/@me/profile to append the line below to your bio. " +
+            "We minimize the risk by only PATCHing when YOU click the toggle, never re-asserting on launch, and never fighting if you clear the value via Discord's normal UI. That one-click-on-consent pattern is what keeps this on the 'third-party tool' side of the line vs. self-bot. " +
+            "Will not duplicate the line if it's already in your bio. Vanilla Discord users see this when they click your profile. Enforcement against personal use of plugin clients is rare, but flip this ON only if you're comfortable with the risk.",
         default: false,
         onChange: (value: boolean) => {
             if (value) applyBioAppend(settings.store.bioAppendText.trim() || DEFAULT_BIO_LINE);
@@ -158,7 +168,9 @@ const settings = definePluginSettings({
     pronounsOnce: {
         type: OptionType.BOOLEAN,
         description:
-            "[Channel D] APPLY ONCE — set your pronouns to the tag below, ONLY if pronouns are currently empty. Vanilla Discord users see pronouns wherever they render.",
+            "[Channel D] ⚠ TOS GRAY AREA — same caveat as Channel C: Discord forbids self-bots, and this toggle PATCHes /users/@me/profile to set your pronouns. " +
+            "We mitigate by only PATCHing on YOUR click, never re-asserting, and never overwriting a pronouns value you've already set (only fires if pronouns are currently empty). One-click consent is the bright line vs. self-botting. " +
+            "Vanilla Discord users see pronouns wherever they render. Enforcement against personal use of plugin clients is rare, but flip this ON only if you're comfortable with the risk.",
         default: false,
         onChange: (value: boolean) => {
             if (value) applyPronouns(settings.store.pronounsTag.trim() || DEFAULT_PRONOUNS_TAG);
@@ -219,7 +231,14 @@ const badge: ProfileBadge = {
     iconSrc: BADGE_ICON,
     link: "https://maxxtopia.com/discordmaxxer",
     position: BadgePosition.START,
-    shouldShow: ({ userId }) => knownIds.has(userId)
+    // Show on: (1) IDs in the local knownIds set — your own ID if
+    // showOnOwnProfile is on, plus extraUserIds, plus optional remoteListUrl,
+    // OR (2) anyone present on the Discordmaxxer tier roster (i.e., they've
+    // redeemed a paid claim code). The roster covers the common "two friends
+    // running DM" case without either user having to manually paste IDs.
+    // Free-tier users without paid claims aren't in the roster — those
+    // friends need to be added manually via the extraUserIds setting.
+    shouldShow: ({ userId }) => knownIds.has(userId) || getRosterTier(userId) !== Tier.FREE
 };
 
 export default definePlugin({
@@ -235,6 +254,14 @@ export default definePlugin({
     async start() {
         rebuildKnownIds();
         addProfileBadge(badge);
+        // Kick off a roster refresh so paid-tier users appear in the cache
+        // soon after launch. shouldShow() reads the cache synchronously and
+        // returns Tier.FREE for un-cached users — meaning the first time you
+        // open a paid friend's profile after a fresh launch you might not
+        // see the badge, but the next render (after the fetch resolves) will.
+        // Discord re-renders profile popouts on every open, so the catch-up
+        // is invisible in practice.
+        refreshRoster().catch(e => console.warn("[DiscordmaxxerBadge] roster refresh failed:", e));
         await loadRemoteList();
     },
 
