@@ -63,7 +63,8 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "DiscordmaxxerTrim", // hides Family Center / Nitro promos / HypeSquad
     "DiscordmaxxerPresence", // broadcasts "Playing Discordmaxxer" rich-presence activity
     "DiscordmaxxerGrant", // right-click → Grant tier (admin-only UI); cross-references local grants on view
-    "DiscordmaxxerVipClaim" // settings panel: redeem HWID-locked VIP code → unlocks MAXXER++ tier
+    "DiscordmaxxerVipClaim", // settings panel: redeem HWID-locked VIP code → unlocks MAXXER++ tier
+    "DiscordmaxxerTierFlair" // cross-user status flex: avatar ring, name tint, popout banner, founder gem
 ];
 
 const VENCORD_DEFAULTS = {
