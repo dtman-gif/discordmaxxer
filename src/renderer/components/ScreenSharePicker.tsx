@@ -37,8 +37,20 @@ import type { Dispatch, SetStateAction } from "react";
 import { addPatch } from "renderer/patches/shared";
 import { State, useSettings, useVesktopState } from "renderer/settings";
 import { isLinux, isWindows } from "renderer/utils";
+import {
+    getActiveWinAudioSession,
+    replaceScreenShareAudioTrack,
+    startWinAudioSession,
+    type WinAudioSession
+} from "renderer/winaudioBridge";
 
 import { SimpleErrorBoundary } from "./SimpleErrorBoundary";
+
+interface WinAudioDevice {
+    id: string;
+    name: string;
+    isDefault: boolean;
+}
 
 const StreamResolutions = ["480", "720", "1080", "1440", "2160"] as const;
 const StreamFps = ["15", "30", "60"] as const;
@@ -63,6 +75,14 @@ interface StreamSettings {
     contentHint?: string;
     includeSources?: AudioSources;
     excludeSources?: AudioSources;
+    /**
+     * Windows-only — endpoint id from VesktopNative.winAudio.list(). When
+     * set + non-empty, screenshare audio is captured from that specific
+     * output device (per-device WASAPI loopback) instead of the system
+     * default. Empty / undefined = stock Electron loopback. See
+     * winaudioBridge.ts for the capture pipeline.
+     */
+    windowsAudioDeviceId?: string;
 }
 
 export interface StreamPick extends StreamSettings {
@@ -134,6 +154,21 @@ if (isLinux) {
     });
 }
 
+if (isWindows) {
+    // Tear down winaudio capture + AudioContext when this user's
+    // screenshare ends. Mirrors the venmic cleanup above; same Vencord
+    // FluxDispatcher event.
+    onceReady.then(() => {
+        FluxDispatcher.subscribe("STREAM_CLOSE", ({ streamKey }: { streamKey: string }) => {
+            const owner = streamKey.split(":").at(-1);
+            if (owner !== UserStore.getCurrentUser().id) return;
+            const session = getActiveWinAudioSession();
+            if (!session) return;
+            session.stop().catch(e => console.warn("[winaudio] stop on STREAM_CLOSE failed:", e));
+        });
+    });
+}
+
 export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
     let didSubmit = false;
     return new Promise<StreamPick>((resolve, reject) => {
@@ -155,7 +190,45 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                             }
                         }
 
+                        // winaudio per-output-device path (Windows). If the user
+                        // picked a specific output device, capture from it now —
+                        // BEFORE we resolve, so the WASAPI loop is already
+                        // emitting PCM by the time Discord wires up its
+                        // RTCPeerConnection. The actual track replacement is a
+                        // poll-with-retry triggered after resolve below; Discord
+                        // takes ~50-500ms to negotiate the screenshare PC.
+                        let pendingWinAudio: WinAudioSession | null = null;
+                        if (isWindows && v.audio && v.windowsAudioDeviceId) {
+                            try {
+                                pendingWinAudio = await startWinAudioSession(v.windowsAudioDeviceId);
+                            } catch (e) {
+                                logger.error("[winaudio] start failed — falling back to default loopback:", e);
+                            }
+                        }
+
                         resolve(v);
+
+                        if (pendingWinAudio) {
+                            const me = UserStore.getCurrentUser().id;
+                            const track = pendingWinAudio.track;
+                            // Poll for the screenshare PC. Most negotiations
+                            // complete <500ms; cap at 5s before giving up. If we
+                            // never find the sender, the screenshare still works
+                            // — just on Electron's default loopback, not our
+                            // chosen device. Loud-warn so devtools shows it.
+                            (async () => {
+                                for (let i = 0; i < 20; i++) {
+                                    const ok = await replaceScreenShareAudioTrack(me, track);
+                                    if (ok) return;
+                                    await new Promise(r => setTimeout(r, 250));
+                                }
+                                logger.warn(
+                                    "[winaudio] gave up locating screenshare audio sender after 5s. " +
+                                    "Audio is still streaming via Electron's default loopback path; " +
+                                    "the per-device capture is running but unreplaced."
+                                );
+                            })();
+                        }
                     }}
                     close={() => {
                         props.onClose();
@@ -446,9 +519,75 @@ function StreamSettingsUi({
                         setExcludeSources={sources => setSettings(s => ({ ...s, excludeSources: sources }))}
                     />
                 )}
+
+                {isWindows && settings.audio && (
+                    <AudioSourcePickerWindows
+                        deviceId={settings.windowsAudioDeviceId}
+                        setDeviceId={(id) =>
+                            setSettings(s => ({ ...s, windowsAudioDeviceId: id }))
+                        }
+                    />
+                )}
             </Card>
         </div>
     );
+}
+
+function AudioSourcePickerWindows({
+    deviceId,
+    setDeviceId
+}: {
+    deviceId?: string;
+    setDeviceId: (id: string | undefined) => void;
+}) {
+    const [devices, _err, loading] = useAwaiter(
+        async () => {
+            const r = await VesktopNative.winAudio.list();
+            return r.ok ? r.devices : [];
+        },
+        { fallbackValue: [] as WinAudioDevice[], deps: [] }
+    );
+
+    const noneOption: SelectOption<string> = {
+        label: "System default (loopback)",
+        value: "",
+        default: true
+    };
+    const deviceOptions: SelectOption<string>[] = (devices ?? []).map((d: WinAudioDevice) => ({
+        label: d.isDefault ? `${d.name} · default` : d.name,
+        value: d.id
+    }));
+
+    const current = deviceId ?? "";
+
+    return (
+        <div className={cl("audio-sources")} style={{ marginTop: 12 }}>
+            <section>
+                <Heading tag="h5">
+                    {loading ? "Loading audio outputs…" : "Audio source (Windows)"}
+                </Heading>
+                <SimpleErrorBoundary>
+                    <Select
+                        options={[noneOption, ...deviceOptions]}
+                        isSelected={(v: string) => v === current}
+                        select={(v: string) => setDeviceId(v ? v : undefined)}
+                        serialize={String}
+                        popoutPosition="top"
+                        closeOnSelect={true}
+                    />
+                </SimpleErrorBoundary>
+                <Paragraph style={{ marginTop: 6, fontSize: 11.5, opacity: 0.75 }}>
+                    Default uses Electron's loopback (whichever output is your Windows default). Pick a specific output device to capture from <em>that</em> endpoint instead — useful if you route through Voicemeeter / VB-Cable / EqualizerAPO and the wrong device is set as default.
+                </Paragraph>
+            </section>
+        </div>
+    );
+}
+
+interface SelectOption<T> {
+    label: string;
+    value: T;
+    default?: boolean;
 }
 
 function isSpecialSource(value?: AudioSource | AudioSources): value is SpecialSource {
