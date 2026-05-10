@@ -123,12 +123,32 @@ export interface WinAudioSession {
 let activeSession: WinAudioSession | null = null;
 
 /**
- * Start a winaudio capture on the chosen output device + return a
+ * Start a winaudio per-output-device loopback capture + return a
  * MediaStreamTrack the caller can swap into Discord's outgoing audio
  * sender. Caller is responsible for calling session.stop() on
  * STREAM_CLOSE.
  */
 export async function startWinAudioSession(deviceId: string): Promise<WinAudioSession> {
+    return startSessionFromInit(() => VesktopNative.winAudio.start(deviceId));
+}
+
+/**
+ * Start a winaudio process-loopback capture (Win10 1903+). Captures audio
+ * FROM the target process tree. Use mode="include" to capture only that
+ * app (typical: pick the game), or "exclude" to capture everything except
+ * that app (typical: pick Discord to keep its playback out of the
+ * stream — fixes audio-mixer echo).
+ */
+export async function startWinAudioProcessSession(
+    targetPid: number,
+    mode: "include" | "exclude"
+): Promise<WinAudioSession> {
+    return startSessionFromInit(() => VesktopNative.winAudio.startProcess(targetPid, mode));
+}
+
+async function startSessionFromInit(
+    init: () => Promise<{ ok: true; format: CaptureFormat } | { ok: false; error: string }>
+): Promise<WinAudioSession> {
     if (activeSession) {
         // Defensive — Discord screenshares are one-at-a-time; if a prior
         // session leaked, tear it down now rather than refusing.
@@ -136,7 +156,7 @@ export async function startWinAudioSession(deviceId: string): Promise<WinAudioSe
         activeSession = null;
     }
 
-    const startResult = await VesktopNative.winAudio.start(deviceId);
+    const startResult = await init();
     if (!startResult.ok) {
         throw new Error("winaudio start failed: " + startResult.error);
     }

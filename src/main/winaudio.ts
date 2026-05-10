@@ -28,6 +28,14 @@ interface WinAudioModule {
     ) => { sampleRate: number; channels: number; bitsPerSample: number; isFloat: boolean };
     stopCapture: () => void;
     isCapturing: () => boolean;
+    enumerateAudioSessions: () => {
+        sessions: Array<{ pid: number; processName: string; displayName: string; isActive: boolean }>;
+    };
+    startProcessLoopback: (
+        targetPid: number,
+        mode: "include" | "exclude",
+        onChunk: (chunk: { data: Buffer; frameCount: number; timestamp100ns: bigint; silent: boolean }) => void,
+    ) => { sampleRate: number; channels: number; bitsPerSample: number; isFloat: boolean };
 }
 
 // Lazy-load — winaudio only ships on Windows, and we don't want missing-module
@@ -98,3 +106,36 @@ ipcMain.handle(IpcEvents.DM_WIN_AUDIO_STOP, async () => {
         return { ok: false, error: String(e?.message || e) };
     }
 });
+
+ipcMain.handle(IpcEvents.DM_WIN_AUDIO_SESSIONS, async () => {
+    const mod = load();
+    if (!mod) return { ok: false, error: loadError ?? "winaudio unavailable" };
+    try {
+        return { ok: true, sessions: mod.enumerateAudioSessions().sessions };
+    } catch (e: any) {
+        return { ok: false, error: String(e?.message || e) };
+    }
+});
+
+ipcMain.handle(
+    IpcEvents.DM_WIN_AUDIO_START_PROCESS,
+    async (event, targetPid: number, mode: "include" | "exclude") => {
+        const mod = load();
+        if (!mod) return { ok: false, error: loadError ?? "winaudio unavailable" };
+        try {
+            const win = BrowserWindow.fromWebContents(event.sender);
+            const format = mod.startProcessLoopback(targetPid, mode, chunk => {
+                if (!win || win.isDestroyed()) return;
+                win.webContents.send(IpcEvents.DM_WIN_AUDIO_CHUNK, {
+                    data: chunk.data,
+                    frameCount: chunk.frameCount,
+                    timestamp100ns: chunk.timestamp100ns.toString(),
+                    silent: chunk.silent,
+                });
+            });
+            return { ok: true, format };
+        } catch (e: any) {
+            return { ok: false, error: String(e?.message || e) };
+        }
+    },
+);

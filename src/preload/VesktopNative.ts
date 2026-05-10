@@ -157,6 +157,28 @@ export const VesktopNative = {
             const handler = (_e: unknown, chunk: any) => cb(chunk);
             ipcRenderer.on(IpcEvents.DM_WIN_AUDIO_CHUNK, handler);
             return () => ipcRenderer.off(IpcEvents.DM_WIN_AUDIO_CHUNK, handler);
-        }
+        },
+        // v0.7.4 — process-loopback path. Captures audio FROM specific
+        // app(s) instead of from the system output mix. Solves the audio-
+        // mixer echo problem (the streamer's Voicemeeter routing isn't in
+        // the capture path because we're sourcing from the app directly).
+        listSessions: () =>
+            invoke<
+                { ok: false; error: string }
+                | {
+                      ok: true;
+                      sessions: Array<{
+                          pid: number;
+                          processName: string;
+                          displayName: string;
+                          isActive: boolean;
+                      }>;
+                  }
+            >(IpcEvents.DM_WIN_AUDIO_SESSIONS),
+        startProcess: (targetPid: number, mode: "include" | "exclude") =>
+            invoke<
+                { ok: false; error: string }
+                | { ok: true; format: { sampleRate: number; channels: number; bitsPerSample: number; isFloat: boolean } }
+            >(IpcEvents.DM_WIN_AUDIO_START_PROCESS, targetPid, mode),
     }
 };

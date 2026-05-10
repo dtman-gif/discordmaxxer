@@ -40,6 +40,7 @@ import { isLinux, isWindows } from "renderer/utils";
 import {
     getActiveWinAudioSession,
     replaceScreenShareAudioTrack,
+    startWinAudioProcessSession,
     startWinAudioSession,
     type WinAudioSession
 } from "renderer/winaudioBridge";
@@ -83,6 +84,14 @@ interface StreamSettings {
      * winaudioBridge.ts for the capture pipeline.
      */
     windowsAudioDeviceId?: string;
+    /**
+     * Windows-only — process id from VesktopNative.winAudio.listSessions().
+     * When set, screenshare audio is captured FROM that process tree
+     * (Process Loopback, Win10 1903+) — bypasses the system output mix
+     * entirely. Solves audio-mixer echo (Voicemeeter routing isn't in
+     * the capture path). Mutually exclusive with windowsAudioDeviceId.
+     */
+    windowsAudioProcessPid?: number;
 }
 
 export interface StreamPick extends StreamSettings {
@@ -190,17 +199,22 @@ export function openScreenSharePicker(screens: Source[], skipPicker: boolean) {
                             }
                         }
 
-                        // winaudio per-output-device path (Windows). If the user
-                        // picked a specific output device, capture from it now —
-                        // BEFORE we resolve, so the WASAPI loop is already
-                        // emitting PCM by the time Discord wires up its
-                        // RTCPeerConnection. The actual track replacement is a
-                        // poll-with-retry triggered after resolve below; Discord
-                        // takes ~50-500ms to negotiate the screenshare PC.
+                        // winaudio paths (Windows). Per-output-device OR per-
+                        // process loopback. Capture is started BEFORE we
+                        // resolve, so the WASAPI loop is already emitting PCM
+                        // by the time Discord wires up its RTCPeerConnection.
+                        // Track replacement is a poll-with-retry below.
                         let pendingWinAudio: WinAudioSession | null = null;
-                        if (isWindows && v.audio && v.windowsAudioDeviceId) {
+                        if (isWindows && v.audio) {
                             try {
-                                pendingWinAudio = await startWinAudioSession(v.windowsAudioDeviceId);
+                                if (v.windowsAudioProcessPid) {
+                                    pendingWinAudio = await startWinAudioProcessSession(
+                                        v.windowsAudioProcessPid,
+                                        "include"
+                                    );
+                                } else if (v.windowsAudioDeviceId) {
+                                    pendingWinAudio = await startWinAudioSession(v.windowsAudioDeviceId);
+                                }
                             } catch (e) {
                                 logger.error("[winaudio] start failed — falling back to default loopback:", e);
                             }
@@ -523,8 +537,20 @@ function StreamSettingsUi({
                 {isWindows && settings.audio && (
                     <AudioSourcePickerWindows
                         deviceId={settings.windowsAudioDeviceId}
+                        processPid={settings.windowsAudioProcessPid}
                         setDeviceId={(id) =>
-                            setSettings(s => ({ ...s, windowsAudioDeviceId: id }))
+                            setSettings(s => ({
+                                ...s,
+                                windowsAudioDeviceId: id,
+                                windowsAudioProcessPid: id ? undefined : s.windowsAudioProcessPid
+                            }))
+                        }
+                        setProcessPid={(pid) =>
+                            setSettings(s => ({
+                                ...s,
+                                windowsAudioProcessPid: pid,
+                                windowsAudioDeviceId: pid ? undefined : s.windowsAudioDeviceId
+                            }))
                         }
                     />
                 )}
@@ -533,52 +559,151 @@ function StreamSettingsUi({
     );
 }
 
+interface WinAudioSession {
+    pid: number;
+    processName: string;
+    displayName: string;
+    isActive: boolean;
+}
+
 function AudioSourcePickerWindows({
     deviceId,
-    setDeviceId
+    processPid,
+    setDeviceId,
+    setProcessPid
 }: {
     deviceId?: string;
+    processPid?: number;
     setDeviceId: (id: string | undefined) => void;
+    setProcessPid: (pid: number | undefined) => void;
 }) {
-    const [devices, _err, loading] = useAwaiter(
+    const [mode, setMode] = useState<"default" | "device" | "app">(
+        processPid ? "app" : deviceId ? "device" : "default"
+    );
+
+    const [devices, _devErr, devLoading] = useAwaiter(
         async () => {
             const r = await VesktopNative.winAudio.list();
             return r.ok ? r.devices : [];
         },
         { fallbackValue: [] as WinAudioDevice[], deps: [] }
     );
-
-    const noneOption: SelectOption<string> = {
-        label: "System default (loopback)",
-        value: "",
-        default: true
-    };
-    const deviceOptions: SelectOption<string>[] = (devices ?? []).map((d: WinAudioDevice) => ({
-        label: d.isDefault ? `${d.name} · default` : d.name,
-        value: d.id
-    }));
-
-    const current = deviceId ?? "";
+    const [sessions, _sErr, sessionsLoading, refreshSessions] = useAwaiter(
+        async () => {
+            const r = await VesktopNative.winAudio.listSessions();
+            return r.ok ? r.sessions : [];
+        },
+        { fallbackValue: [] as WinAudioSession[], deps: [] }
+    );
 
     return (
         <div className={cl("audio-sources")} style={{ marginTop: 12 }}>
             <section>
-                <Heading tag="h5">
-                    {loading ? "Loading audio outputs…" : "Audio source (Windows)"}
-                </Heading>
-                <SimpleErrorBoundary>
-                    <Select
-                        options={[noneOption, ...deviceOptions]}
-                        isSelected={(v: string) => v === current}
-                        select={(v: string) => setDeviceId(v ? v : undefined)}
-                        serialize={String}
-                        popoutPosition="top"
-                        closeOnSelect={true}
-                    />
-                </SimpleErrorBoundary>
-                <Paragraph style={{ marginTop: 6, fontSize: 11.5, opacity: 0.75 }}>
-                    Default uses Electron's loopback (whichever output is your Windows default). Pick a specific output device to capture from <em>that</em> endpoint instead — useful if you route through Voicemeeter / VB-Cable / EqualizerAPO and the wrong device is set as default.
-                </Paragraph>
+                <Heading tag="h5">Audio source (Windows)</Heading>
+                <div className={cl("option-radios")} style={{ marginTop: 6 }}>
+                    <label className={cl("option-radio")} data-checked={mode === "default"}>
+                        <Span weight="bold">System default</Span>
+                        <input
+                            className={cl("option-input")}
+                            type="radio"
+                            name="winaudio-mode"
+                            checked={mode === "default"}
+                            onChange={() => {
+                                setMode("default");
+                                setDeviceId(undefined);
+                                setProcessPid(undefined);
+                            }}
+                        />
+                    </label>
+                    <label className={cl("option-radio")} data-checked={mode === "device"}>
+                        <Span weight="bold">Specific output device</Span>
+                        <input
+                            className={cl("option-input")}
+                            type="radio"
+                            name="winaudio-mode"
+                            checked={mode === "device"}
+                            onChange={() => {
+                                setMode("device");
+                                setProcessPid(undefined);
+                            }}
+                        />
+                    </label>
+                    <label className={cl("option-radio")} data-checked={mode === "app"}>
+                        <Span weight="bold">Specific app (no echo)</Span>
+                        <input
+                            className={cl("option-input")}
+                            type="radio"
+                            name="winaudio-mode"
+                            checked={mode === "app"}
+                            onChange={() => {
+                                setMode("app");
+                                setDeviceId(undefined);
+                            }}
+                        />
+                    </label>
+                </div>
+
+                {mode === "device" && (
+                    <div style={{ marginTop: 10 }}>
+                        <SimpleErrorBoundary>
+                            <Select
+                                options={(devices ?? []).map((d: WinAudioDevice) => ({
+                                    label: d.isDefault ? `${d.name} · default` : d.name,
+                                    value: d.id,
+                                    default: d.isDefault
+                                }))}
+                                isSelected={(v: string) => v === (deviceId ?? "")}
+                                select={(v: string) => setDeviceId(v ? v : undefined)}
+                                serialize={String}
+                                popoutPosition="top"
+                                closeOnSelect={true}
+                            />
+                        </SimpleErrorBoundary>
+                        <Paragraph style={{ marginTop: 6, fontSize: 11.5, opacity: 0.75 }}>
+                            {devLoading ? "Loading audio outputs…" : "Captures from the chosen device's loopback. Useful when the wrong device is your Windows default."}
+                        </Paragraph>
+                    </div>
+                )}
+
+                {mode === "app" && (
+                    <div style={{ marginTop: 10 }}>
+                        <SimpleErrorBoundary>
+                            <Select
+                                options={[
+                                    { label: "Pick an app…", value: "0", default: !processPid },
+                                    ...((sessions ?? []) as WinAudioSession[]).map(s => ({
+                                        label: `${s.processName || `pid ${s.pid}`}${s.isActive ? " · playing" : ""}`,
+                                        value: String(s.pid)
+                                    }))
+                                ]}
+                                isSelected={(v: string) => v === String(processPid ?? 0)}
+                                select={(v: string) => {
+                                    const n = parseInt(v, 10);
+                                    setProcessPid(Number.isFinite(n) && n > 0 ? n : undefined);
+                                }}
+                                serialize={String}
+                                popoutPosition="top"
+                                closeOnSelect={true}
+                            />
+                        </SimpleErrorBoundary>
+                        <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                            <Button variant="secondary" size={Button.Sizes.SMALL} onClick={refreshSessions}>
+                                <RestartIcon />
+                                Refresh
+                            </Button>
+                            <Span style={{ fontSize: 11, opacity: 0.7 }}>
+                                {sessionsLoading
+                                    ? "Loading…"
+                                    : (sessions?.length ?? 0) === 0
+                                        ? "No apps playing audio. Start the app + click Refresh."
+                                        : `${sessions?.length ?? 0} apps with audio sessions`}
+                            </Span>
+                        </div>
+                        <Paragraph style={{ marginTop: 6, fontSize: 11.5, opacity: 0.75 }}>
+                            Captures audio FROM the picked app (Win10 1903+ Process Loopback API). Bypasses your audio mixer entirely — Voicemeeter / VB-Cable routing isn't in the capture path, so viewers don't hear themselves echo back. This is what the official Discord client does.
+                        </Paragraph>
+                    </div>
+                )}
             </section>
         </div>
     );

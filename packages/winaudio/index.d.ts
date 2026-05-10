@@ -79,3 +79,55 @@ export function stopCapture(): void;
 
 /** True if a capture is currently active. */
 export function isCapturing(): boolean;
+
+export interface AudioSession {
+    /** Process ID (Windows DWORD). 0 is filtered out (system sounds). */
+    pid: number;
+    /** Best-effort exe basename, e.g. "FortniteClient-Win64-Shipping.exe".
+     *  Empty if OpenProcess access was denied (e.g., elevated processes
+     *  while running unelevated). */
+    processName: string;
+    /** Session display name set by the app (often empty). */
+    displayName: string;
+    /** True if the session is currently producing audio (vs idle). */
+    isActive: boolean;
+}
+
+export interface ListSessionsResult {
+    sessions: AudioSession[];
+}
+
+/**
+ * Enumerate active audio sessions across all render endpoints. Useful for
+ * populating an "app picker" UI for process-loopback capture. Returns
+ * deduped-by-pid list (an app with N streams shows once).
+ *
+ * Returns an empty list if no app currently has an open audio session —
+ * tell users to start playing audio first.
+ */
+export function enumerateAudioSessions(): ListSessionsResult;
+
+export type ProcessLoopbackMode = "include" | "exclude";
+
+/**
+ * Start a Process Loopback capture (Win10 1903+). Captures audio FROM a
+ * specific process tree, regardless of which output device that process's
+ * audio routes to. Solves the audio-mixer echo problem: the streamer's
+ * Voicemeeter / VB-Cable routing is bypassed because we're not capturing
+ * the system output — we're capturing the source app directly.
+ *
+ * mode = "include": capture only from the target process tree (e.g.,
+ *   pid = Fortnite → captures only Fortnite audio).
+ * mode = "exclude": capture everything EXCEPT the target process tree
+ *   (e.g., pid = Discord → captures everything except Discord's playback).
+ *
+ * Format is fixed at float32 stereo @ 48kHz (what Process Loopback API
+ * accepts; matches our renderer AudioWorklet).
+ *
+ * Throws if Win10 < 1903 or the API is unavailable.
+ */
+export function startProcessLoopback(
+    targetPid: number,
+    mode: ProcessLoopbackMode,
+    onChunk: (chunk: AudioChunk) => void,
+): CaptureFormat;
