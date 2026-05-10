@@ -71,7 +71,14 @@ export const enum IpcEvents {
     DM_SET_PERFORMANCE_MODE = "DM_SET_PERFORMANCE_MODE",
     DM_GET_HWID = "DM_GET_HWID",
     DM_GET_ALLOW_PRERELEASE = "DM_GET_ALLOW_PRERELEASE",
-    DM_SET_ALLOW_PRERELEASE = "DM_SET_ALLOW_PRERELEASE"
+    DM_SET_ALLOW_PRERELEASE = "DM_SET_ALLOW_PRERELEASE",
+    // winaudio — per-output-device WASAPI loopback (Windows-only).
+    // Replaces Electron's default-device-only "loopback" string for users
+    // with audio-mixer setups (Voicemeeter / VB-Cable / EqualizerAPO).
+    DM_WIN_AUDIO_LIST = "DM_WIN_AUDIO_LIST",
+    DM_WIN_AUDIO_START = "DM_WIN_AUDIO_START",
+    DM_WIN_AUDIO_STOP = "DM_WIN_AUDIO_STOP",
+    DM_WIN_AUDIO_CHUNK = "DM_WIN_AUDIO_CHUNK"
 }
 
 export const enum UpdaterIpcEvents {

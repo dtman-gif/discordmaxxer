@@ -133,5 +133,30 @@ export const VesktopNative = {
     beta: {
         getAllowPrerelease: () => invoke<boolean>(IpcEvents.DM_GET_ALLOW_PRERELEASE),
         setAllowPrerelease: (on: boolean) => invoke<void>(IpcEvents.DM_SET_ALLOW_PRERELEASE, on)
+    },
+    /**
+     * winaudio — per-output-device WASAPI loopback. Lets the screenshare
+     * picker capture audio from a specific Windows output endpoint instead
+     * of whatever Windows says is the default. Fixes screenshare for users
+     * with Voicemeeter / VB-Cable / EqualizerAPO routing. Windows-only;
+     * `list()` returns `{ ok: false, error }` on other platforms.
+     */
+    winAudio: {
+        list: () =>
+            invoke<
+                { ok: false; error: string }
+                | { ok: true; devices: Array<{ id: string; name: string; isDefault: boolean }> }
+            >(IpcEvents.DM_WIN_AUDIO_LIST),
+        start: (deviceId: string) =>
+            invoke<
+                { ok: false; error: string }
+                | { ok: true; format: { sampleRate: number; channels: number; bitsPerSample: number; isFloat: boolean } }
+            >(IpcEvents.DM_WIN_AUDIO_START, deviceId),
+        stop: () => invoke<{ ok: true } | { ok: false; error: string }>(IpcEvents.DM_WIN_AUDIO_STOP),
+        onChunk: (cb: (chunk: { data: Buffer; frameCount: number; timestamp100ns: string; silent: boolean }) => void) => {
+            const handler = (_e: unknown, chunk: any) => cb(chunk);
+            ipcRenderer.on(IpcEvents.DM_WIN_AUDIO_CHUNK, handler);
+            return () => ipcRenderer.off(IpcEvents.DM_WIN_AUDIO_CHUNK, handler);
+        }
     }
 };

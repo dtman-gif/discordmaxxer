@@ -10,6 +10,7 @@ import "./ipc";
 import "./discordmaxxerHotkeys";
 import "./discordmaxxerPerf";
 import "./discordmaxxerHwid";
+import "./winaudio";
 import "./userAssets";
 import "./vesktopProtocol";
 
