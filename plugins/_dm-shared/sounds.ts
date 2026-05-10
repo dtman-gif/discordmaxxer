@@ -18,6 +18,8 @@
 
 import { SOUND_CLICK, SOUND_ERROR, SOUND_NOTIFY, SOUND_TOGGLE } from "./sounds-pack";
 import { THEMES, ThemeId } from "./themes";
+import { THEMED_SOUND_PACKS } from "./themed-sound-packs";
+import { hasTier, Tier } from "./vip";
 
 type SoundName = "click" | "toggle" | "error" | "notify";
 
@@ -106,12 +108,17 @@ export function playSound(sound: SoundName, themeId?: ThemeId) {
     const id = (themeId ?? (document.body.className.match(/dm-theme-(\w+)/)?.[1] as ThemeId)) ?? "maxxer";
     if (!THEMES[id]) return;
 
-    // Resolution order: per-theme override -> bundled default -> synth fallback.
+    // Resolution order:
+    //   1. localStorage override (user-registered via registerSound)
+    //   2. THEMED_SOUND_PACKS  — MAXXER tier perk; per-theme curated Kenney pack
+    //   3. BUNDLED Material Design defaults (universal across themes, free)
+    //   4. Web Audio synth fallback
     const overrideKey = `dm-sounds.${id}.${sound}`;
     const override = (() => {
         try { return localStorage.getItem(overrideKey); } catch { return null; }
     })();
-    const url = override || BUNDLED[sound];
+    const themedPack = hasTier(Tier.MAXXER) ? THEMED_SOUND_PACKS[id]?.[sound] : undefined;
+    const url = override || themedPack || BUNDLED[sound];
 
     if (url) {
         try {

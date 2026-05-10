@@ -64,4 +64,8 @@ export interface State {
         ignoredVersion?: string;
         snoozeUntil?: number;
     };
+
+    /** Discordmaxxer — MAXXER++ "beta builds" perk. When true,
+     *  electron-updater accepts prerelease GitHub releases (vX.Y.Z-beta.N) */
+    allowPrerelease?: boolean;
 }

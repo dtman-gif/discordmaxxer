@@ -129,5 +129,9 @@ export const VesktopNative = {
     },
     hwid: {
         get: () => invoke<{ ok: boolean; hwid?: string; error?: string }>(IpcEvents.DM_GET_HWID)
+    },
+    beta: {
+        getAllowPrerelease: () => invoke<boolean>(IpcEvents.DM_GET_ALLOW_PRERELEASE),
+        setAllowPrerelease: (on: boolean) => invoke<void>(IpcEvents.DM_SET_ALLOW_PRERELEASE, on)
     }
 };

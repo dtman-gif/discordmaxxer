@@ -66,7 +66,9 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "DiscordmaxxerVipClaim", // settings panel: redeem HWID-locked VIP code → unlocks MAXXER++ tier
     "DiscordmaxxerTierFlair", // cross-user status flex: avatar ring, name tint, popout banner, founder gem
     "DiscordmaxxerChime", // MAXXER+ perk: themed mention chime (no-ops below MAXXER+)
-    "DiscordmaxxerTyping" // MAXXER perk: [VIP]/[VIP+]/[MVP++] prefix in typing indicator
+    "DiscordmaxxerTyping", // MAXXER perk: [VIP]/[VIP+]/[MVP++] prefix in typing indicator
+    "DiscordmaxxerBeta", // MAXXER++ perk: opt-in beta channel for prerelease GitHub tags
+    "DiscordmaxxerVotes" // MAXXER++ perk: panel for voting on candidate features (polls in #vip-chat)
 ];
 
 const VENCORD_DEFAULTS = {

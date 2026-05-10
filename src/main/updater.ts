@@ -34,12 +34,31 @@ autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 autoUpdater.fullChangelog = true;
 
+// Discordmaxxer — beta-builds opt-in (MAXXER++ tier perk). When State.store
+// .allowPrerelease is true, electron-updater accepts prerelease GitHub
+// releases (tagged vX.Y.Z-beta.N) in addition to stable. Default off.
+autoUpdater.allowPrerelease = State.store.allowPrerelease ?? false;
+
 const isOutdated = autoUpdater.checkForUpdates().then(res => Boolean(res?.isUpdateAvailable));
 
 handle(IpcEvents.UPDATER_IS_OUTDATED, () => isOutdated);
 handle(IpcEvents.UPDATER_OPEN, async () => {
     const res = await autoUpdater.checkForUpdates();
     if (res?.isUpdateAvailable && res.updateInfo) openUpdater(res.updateInfo);
+});
+
+handle(IpcEvents.DM_GET_ALLOW_PRERELEASE, () => State.store.allowPrerelease ?? false);
+handle(IpcEvents.DM_SET_ALLOW_PRERELEASE, async (_e, on: boolean) => {
+    State.store.allowPrerelease = !!on;
+    autoUpdater.allowPrerelease = !!on;
+    // Re-check immediately so a freshly-flipped beta opt-in surfaces a
+    // pending beta release without waiting for the next periodic check.
+    try {
+        const res = await autoUpdater.checkForUpdates();
+        if (res?.isUpdateAvailable && res.updateInfo) openUpdater(res.updateInfo);
+    } catch (e) {
+        console.warn("[Discordmaxxer] DM_SET_ALLOW_PRERELEASE checkForUpdates failed:", e);
+    }
 });
 
 function openUpdater(update: UpdateInfo) {
