@@ -19,9 +19,30 @@
 import { definePluginSettings } from "@api/Settings";
 import { managedStyleRootNode } from "@api/Styles";
 import { createAndAppendStyle } from "@utils/css";
+import { Toasts } from "@webpack/common";
 import definePlugin, { OptionType } from "@utils/types";
 
+import { hasTier, Tier, TIER_LABELS } from "../_dm-shared/vip";
+
 type CursorSkin = "sharingan" | "rinnegan" | "rasengan" | "chidori" | "dragonsword" | "stiiizy";
+
+// Free teaser: Dragon Sword (simplest, no animation loops). All five
+// flashy/animated skins gate behind MAXXER — matches the tier-ladder
+// promise of "5 cursor skins" in the marquee perk.
+const SKIN_TIER: Record<CursorSkin, Tier> = {
+    dragonsword: Tier.FREE,
+    sharingan:   Tier.MAXXER,
+    rinnegan:    Tier.MAXXER,
+    rasengan:    Tier.MAXXER,
+    chidori:     Tier.MAXXER,
+    stiiizy:     Tier.MAXXER
+};
+
+const FREE_FALLBACK: CursorSkin | "off" = "off";
+
+function lockedLabel(label: string, tier: Tier): string {
+    return tier === Tier.FREE ? label : `🔒 ${label} (${TIER_LABELS[tier]})`;
+}
 
 const CURSOR_SVGS: Record<CursorSkin, string> = {
     sharingan: `<svg width="32" height="32" viewBox="0 0 40 40">
@@ -94,7 +115,11 @@ const CURSOR_SVGS: Record<CursorSkin, string> = {
 };
 
 const CURSOR_CSS = `
-    .anime-cursor-active, .anime-cursor-active * { cursor: none !important; }
+    html.anime-cursor-active,
+    html.anime-cursor-active body,
+    html.anime-cursor-active *,
+    html.anime-cursor-active *::before,
+    html.anime-cursor-active *::after { cursor: none !important; }
     .anime-cursor {
         position: fixed;
         transform: translate(-50%, -50%);
@@ -155,30 +180,57 @@ let mousemoveHandler: ((e: MouseEvent) => void) | null = null;
 const settings = definePluginSettings({
     skin: {
         type: OptionType.SELECT,
-        description: "Cursor skin — ported from the maxxer-suite anime cursors. Off restores Discord's default.",
+        description: "Cursor skin — ported from the maxxer-suite anime cursors. Dragon Sword is free; the five animated skins require MAXXER (we'll fall back to Off if you don't qualify).",
         default: "off",
         options: [
             { label: "Off (Discord default)", value: "off", default: true },
-            { label: "Sharingan — red eye, spinning tomoe", value: "sharingan" },
-            { label: "Rinnegan — purple ringed eye", value: "rinnegan" },
-            { label: "Rasengan — spinning blue ball", value: "rasengan" },
-            { label: "Chidori — lightning bolts", value: "chidori" },
+            { label: lockedLabel("Sharingan — red eye, spinning tomoe", Tier.MAXXER), value: "sharingan" },
+            { label: lockedLabel("Rinnegan — purple ringed eye", Tier.MAXXER), value: "rinnegan" },
+            { label: lockedLabel("Rasengan — spinning blue ball", Tier.MAXXER), value: "rasengan" },
+            { label: lockedLabel("Chidori — lightning bolts", Tier.MAXXER), value: "chidori" },
             { label: "Dragon Sword — silver blade", value: "dragonsword" },
-            { label: "Stiiizy — smoke trail (most chaotic)", value: "stiiizy" }
+            { label: lockedLabel("Stiiizy — smoke trail (most chaotic)", Tier.MAXXER), value: "stiiizy" }
         ],
         onChange: (value: string) => applySkin(value as CursorSkin | "off")
     }
 });
 
+function deactivate() {
+    document.documentElement.classList.remove("anime-cursor-active");
+    document.documentElement.style.removeProperty("cursor");
+    document.body?.style.removeProperty("cursor");
+}
+
 function applySkin(skin: CursorSkin | "off") {
     teardownTracking();
 
     if (skin === "off") {
-        document.documentElement.classList.remove("anime-cursor-active");
+        deactivate();
+        return;
+    }
+
+    // Tier gate — match DiscordmaxxerTheme: fall back to Off + toast.
+    const required = SKIN_TIER[skin];
+    if (required !== Tier.FREE && !hasTier(required)) {
+        const tierStr = TIER_LABELS[required];
+        console.warn(`[DiscordmaxxerCursor] skin="${skin}" requires ${tierStr} — falling back to ${FREE_FALLBACK}`);
+        try {
+            Toasts.show({
+                message: `🔒 "${skin}" cursor requires ${tierStr} — using Discord default instead`,
+                id: Toasts.genId(),
+                type: Toasts.Type.MESSAGE,
+                options: { duration: 4000 }
+            });
+        } catch { /* toast may not be ready during start() */ }
+        deactivate();
         return;
     }
 
     document.documentElement.classList.add("anime-cursor-active");
+    // Belt-and-suspenders: set inline cursor:none with !important on root
+    // and body. Beats any Discord rule that matches with higher specificity.
+    document.documentElement.style.setProperty("cursor", "none", "important");
+    document.body.style.setProperty("cursor", "none", "important");
 
     cursorEl = document.createElement("div");
     cursorEl.id = CURSOR_ID;
@@ -233,7 +285,7 @@ export default definePlugin({
 
     stop() {
         teardownTracking();
-        document.documentElement.classList.remove("anime-cursor-active");
+        deactivate();
         style?.remove();
     }
 });
