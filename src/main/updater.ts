@@ -19,7 +19,14 @@ let updaterWindow: BrowserWindow | null = null;
 
 autoUpdater.on("update-available", update => {
     if (State.store.updater?.ignoredVersion === update.version) return;
-    if ((State.store.updater?.snoozeUntil ?? 0) > Date.now()) return;
+    // Snooze is version-specific — snoozing v0.7.12 must not silence
+    // v0.7.13/v0.7.14. Without the version check a 24h snooze was eating
+    // every release that landed during that window (burned 2026-05-11).
+    if (
+        State.store.updater?.snoozedVersion === update.version &&
+        (State.store.updater?.snoozeUntil ?? 0) > Date.now()
+    )
+        return;
 
     openUpdater(update);
 });
@@ -28,10 +35,22 @@ autoUpdater.on("update-downloaded", () => setTimeout(() => autoUpdater.quitAndIn
 autoUpdater.on("download-progress", p =>
     updaterWindow?.webContents.send(UpdaterIpcEvents.DOWNLOAD_PROGRESS, p.percent)
 );
-autoUpdater.on("error", err => updaterWindow?.webContents.send(UpdaterIpcEvents.ERROR, err.message));
+autoUpdater.on("error", err => {
+    // Surface to the updater window if it's open, AND always log — the
+    // startup checkForUpdates() runs before any window exists, so without
+    // a log a network/auth failure was completely invisible (burned
+    // 2026-05-11 diagnosing why a v0.7.14 prompt didn't fire).
+    updaterWindow?.webContents.send(UpdaterIpcEvents.ERROR, err.message);
+    console.error("[Discordmaxxer updater]", err);
+});
 
 autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = false;
+// Apply a downloaded update on the next natural quit. Pairs with the
+// existing prompt: clicking Install kicks off downloadUpdate(), and even
+// if the user closes the updater window without restarting, the file is
+// applied silently when they next quit Discord — no more "I clicked
+// Install but nothing happened" failure modes.
+autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.fullChangelog = true;
 
 // Discordmaxxer — beta-builds opt-in (MAXXER++ tier perk). When State.store
@@ -39,7 +58,16 @@ autoUpdater.fullChangelog = true;
 // releases (tagged vX.Y.Z-beta.N) in addition to stable. Default off.
 autoUpdater.allowPrerelease = State.store.allowPrerelease ?? false;
 
-const isOutdated = autoUpdater.checkForUpdates().then(res => Boolean(res?.isUpdateAvailable));
+const isOutdated = autoUpdater
+    .checkForUpdates()
+    .then(res => Boolean(res?.isUpdateAvailable))
+    .catch(err => {
+        // Startup check fires before any updater window exists, so the
+        // 'error' handler above won't be able to surface this to the UI.
+        // Log so it's at least diagnosable from devtools / the console.
+        console.error("[Discordmaxxer updater] startup checkForUpdates failed:", err);
+        return false;
+    });
 
 handle(IpcEvents.UPDATER_IS_OUTDATED, () => isOutdated);
 handle(IpcEvents.UPDATER_OPEN, async () => {
@@ -80,6 +108,7 @@ function openUpdater(update: UpdateInfo) {
     handle(UpdaterIpcEvents.SNOOZE_UPDATE, () => {
         State.store.updater ??= {};
         State.store.updater.snoozeUntil = Date.now() + 1 * Millis.DAY;
+        State.store.updater.snoozedVersion = update.version;
         updaterWindow?.close();
     });
     handle(UpdaterIpcEvents.IGNORE_UPDATE, () => {

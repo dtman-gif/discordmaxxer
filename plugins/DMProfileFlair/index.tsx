@@ -363,11 +363,6 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Render other users' profile gradient colors.",
         default: true
-    },
-    debugPanel: {
-        type: OptionType.COMPONENT,
-        description: "",
-        component: DebugPanel
     }
 });
 
@@ -383,58 +378,6 @@ let observer: MutationObserver | null = null;
 let rescanTimer: number | null = null;
 let defaultAvatarWarned = false;
 
-const diagnostics = {
-    started: false,
-    popoutsSeen: 0,
-    popoutsWithUserId: 0,
-    bannersApplied: 0,
-    themesApplied: 0,
-    lastUserId: "",
-    lastBannerUrl: "",
-    lastBannerEl: "(none)",
-    lastError: "",
-    /** DOM probe — refreshed on rescan. Lists class hits for substrings we
-     *  might be looking for, so we can pick the right selector. */
-    probeReport: "(rescan to probe)"
-};
-
-function runDomProbe(): string {
-    const allWithClass = document.querySelectorAll("[class]");
-    const buckets: Record<string, Set<string>> = {
-        popout: new Set(),
-        Popout: new Set(),
-        profile: new Set(),
-        Profile: new Set(),
-        userPanel: new Set(),
-        banner: new Set(),
-        Banner: new Set()
-    };
-    allWithClass.forEach(el => {
-        const cn = (el as HTMLElement).className;
-        if (typeof cn !== "string") return;
-        for (const key of Object.keys(buckets)) {
-            if (cn.includes(key)) {
-                // record the first matching class token only, trimmed to 30 chars
-                const tokens = cn.split(/\s+/);
-                for (const t of tokens) {
-                    if (t.includes(key)) {
-                        buckets[key].add(t.slice(0, 30));
-                        break;
-                    }
-                }
-            }
-        }
-    });
-    const lines: string[] = [];
-    for (const [k, v] of Object.entries(buckets)) {
-        const arr = [...v];
-        lines.push(`'${k}' → ${arr.length} class${arr.length === 1 ? "" : "es"}: ${arr.slice(0, 3).join(", ") || "(none)"}`);
-    }
-    // Also probe for elements with [data-user-id]
-    const uidEls = document.querySelectorAll("[data-user-id]");
-    lines.push(`[data-user-id] → ${uidEls.length} matches`);
-    return lines.join("\n");
-}
 
 /** True if a URL ends in a typical video extension. Used to decide whether to
  *  render as background-image (image) or as a <video> overlay (video). Pure
@@ -640,7 +583,6 @@ function applyBanner(banner: HTMLElement, url: string) {
             v.playsInline = true;
             banner.appendChild(v);
             v.play().catch(() => {});
-            diagnostics.lastBannerEl = `${banner.tagName}.${banner.className.slice(0, 40)} (video)`;
         }
     } else {
         // Image URL — clean up any leftover <video> element from a previous
@@ -653,7 +595,6 @@ function applyBanner(banner: HTMLElement, url: string) {
         banner.style.setProperty("background-position", "center", "important");
         banner.style.setProperty("background-repeat", "no-repeat", "important");
         banner.setAttribute("data-dm-flair-banner-applied", "1");
-        diagnostics.lastBannerEl = `${banner.tagName}.${banner.className.slice(0, 40)} (img)`;
     }
 }
 
@@ -723,7 +664,6 @@ function scanForPopouts(_root: ParentNode = document) {
 
     // ── Banner + theme (per-popout: identify whose popout, look up their flair) ──
     const banners = findAllProfileBanners();
-    diagnostics.popoutsSeen = banners.length;
 
     for (const banner of banners) {
         const container = findProfileContainerFromBanner(banner);
@@ -739,17 +679,12 @@ function scanForPopouts(_root: ParentNode = document) {
             const suppressForTM = tmActive && isAnimatedUrl(bannerFlair.bannerUrl);
             if (!suppressForTM) {
                 applyBanner(banner, bannerFlair.bannerUrl);
-                diagnostics.bannersApplied++;
-                diagnostics.lastBannerUrl = bannerFlair.bannerUrl;
-                diagnostics.lastBannerEl = `${banners.length} banner(s) × ${banners[0].className.slice(0, 30)}`;
             }
         }
 
         const themeFlair = resolveFlairForUserId(userId, "theme");
         if (themeFlair?.themeColorPrimary || themeFlair?.themeColorSecondary) {
             applyTheme(container, themeFlair.themeColorPrimary, themeFlair.themeColorSecondary);
-            diagnostics.themesApplied++;
-            diagnostics.lastUserId = userId ?? "(unknown)";
         }
     }
 
@@ -792,26 +727,8 @@ function scanForPopouts(_root: ParentNode = document) {
     }
 }
 
-/** Forced rescan — used when settings change so a user can see updates without
- *  having to close + reopen the popout. Also clears prior banners so cleared
- *  fields take effect. */
-function rescan() {
-    document.querySelectorAll('[data-dm-flair-banner-applied]').forEach(el => {
-        const e = el as HTMLElement;
-        e.style.removeProperty("background-image");
-        e.style.removeProperty("background-size");
-        e.style.removeProperty("background-position");
-        e.style.removeProperty("background-repeat");
-        e.removeAttribute("data-dm-flair-banner-applied");
-    });
-    document.querySelectorAll(".dm-flair-banner-video").forEach(v => v.remove());
-    scanForPopouts(document);
-    diagnostics.probeReport = runDomProbe();
-}
-
 function startObserver() {
     if (observer) return;
-    diagnostics.started = true;
     // MutationObserver kicks off a rescan on ANY DOM mutation under body.
     // Cheap rescan because scanForPopouts queries by class — no walking.
     observer = new MutationObserver(() => scanForPopouts(document));
@@ -824,7 +741,6 @@ function stopObserver() {
     observer?.disconnect();
     observer = null;
     if (rescanTimer !== null) { clearInterval(rescanTimer); rescanTimer = null; }
-    diagnostics.started = false;
     document.querySelectorAll("[data-dm-flair-banner-applied]").forEach(el => {
         const e = el as HTMLElement;
         e.style.removeProperty("background-image");
@@ -854,145 +770,6 @@ function stopObserver() {
     document.querySelectorAll(".dm-flair-banner-video").forEach(v => v.remove());
 }
 
-/** Fixed-position overlay rendered DIRECTLY into the page (not inside Vencord
- *  settings, which has its own rendering quirks). Always visible while the
- *  plugin is enabled. Drag from the header to move; click × to dismiss. */
-function mountDebugOverlay() {
-    if (document.getElementById("dm-flair-debug")) return;
-    const root = document.createElement("div");
-    root.id = "dm-flair-debug";
-    // Persist last position across remounts so user's drag survives reloads.
-    let savedPos: { left: number; top: number } | null = null;
-    try {
-        const raw = localStorage.getItem("dm-flair-debug-pos");
-        if (raw) savedPos = JSON.parse(raw);
-    } catch {}
-    const initialLeft = savedPos?.left ?? (window.innerWidth - 280 - 20);
-    const initialTop = savedPos?.top ?? (window.innerHeight - 220 - 20);
-    root.style.cssText = `
-        position: fixed; left: ${initialLeft}px; top: ${initialTop}px;
-        z-index: 999999;
-        background: rgba(20, 6, 50, 0.92);
-        border: 1px solid rgba(226, 91, 255, 0.55);
-        border-radius: 8px;
-        padding: 8px 10px;
-        font-family: ui-monospace, Menlo, Consolas, monospace;
-        font-size: 10.5px;
-        color: #fbefff;
-        line-height: 1.45;
-        min-width: 240px;
-        max-width: 320px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.45);
-        pointer-events: auto;
-    `;
-    document.body.appendChild(root);
-
-    // Drag handler — only fires on header drag, not on body content or buttons.
-    let dragging = false;
-    let dragOffX = 0, dragOffY = 0;
-    root.addEventListener("mousedown", (ev) => {
-        const target = ev.target as HTMLElement;
-        if (!target.closest("[data-dm-flair-drag-handle]")) return;
-        if (target.tagName === "BUTTON") return;
-        dragging = true;
-        const r = root.getBoundingClientRect();
-        dragOffX = ev.clientX - r.left;
-        dragOffY = ev.clientY - r.top;
-        ev.preventDefault();
-    });
-    window.addEventListener("mousemove", (ev) => {
-        if (!dragging) return;
-        const left = Math.max(0, Math.min(window.innerWidth - root.offsetWidth, ev.clientX - dragOffX));
-        const top = Math.max(0, Math.min(window.innerHeight - root.offsetHeight, ev.clientY - dragOffY));
-        root.style.left = `${left}px`;
-        root.style.top = `${top}px`;
-    });
-    window.addEventListener("mouseup", () => {
-        if (!dragging) return;
-        dragging = false;
-        try {
-            localStorage.setItem("dm-flair-debug-pos", JSON.stringify({
-                left: parseInt(root.style.left, 10),
-                top: parseInt(root.style.top, 10)
-            }));
-        } catch {}
-    });
-
-    const renderOverlay = () => {
-        const dotColor = diagnostics.started ? "#55ff55" : "#ff5555";
-        const row = (k: string, v: string | number | boolean) =>
-            `<div><span style="color:#8a91a3">${k}:</span> <span style="color:#fbefff">${String(v)}</span></div>`;
-        root.innerHTML = `
-            <div data-dm-flair-drag-handle="1" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:move;user-select:none">
-                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor}"></span>
-                <span style="font-weight:700">DMProfileFlair · debug</span>
-                <span style="color:#8a91a3;font-size:9px;margin-left:4px">(drag)</span>
-                <button id="dm-flair-debug-rescan" style="margin-left:auto;background:rgba(85,85,255,0.4);border:0;color:#fff;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">rescan</button>
-                <button id="dm-flair-debug-close" style="background:rgba(255,85,85,0.4);border:0;color:#fff;border-radius:4px;padding:3px 6px;font-size:10px;cursor:pointer">×</button>
-            </div>
-            ${row("observer", diagnostics.started ? "RUNNING" : "stopped")}
-            ${row("popouts seen", diagnostics.popoutsSeen)}
-            ${row("popouts w/ userId", diagnostics.popoutsWithUserId)}
-            ${row("banners applied", diagnostics.bannersApplied)}
-            ${row("themes applied", diagnostics.themesApplied)}
-            ${row("last userId", diagnostics.lastUserId || "(none yet)")}
-            ${row("last banner el", diagnostics.lastBannerEl)}
-            ${row("last banner URL", diagnostics.lastBannerUrl.slice(0, 50) || "(none)")}
-            ${row("last error", diagnostics.lastError || "(none)")}
-            <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1);white-space:pre-wrap;font-size:10px;color:#cbd0e0">${diagnostics.probeReport.replace(/</g, "&lt;")}</div>
-        `;
-        root.querySelector("#dm-flair-debug-close")?.addEventListener("click", () => root.remove());
-        root.querySelector("#dm-flair-debug-rescan")?.addEventListener("click", rescan);
-    };
-    renderOverlay();
-    const intervalId = window.setInterval(() => {
-        if (!document.body.contains(root)) { clearInterval(intervalId); return; }
-        renderOverlay();
-    }, 500);
-}
-
-function unmountDebugOverlay() {
-    document.getElementById("dm-flair-debug")?.remove();
-}
-
-function DebugPanel() {
-    const [tick, setTick] = React.useState(0);
-    React.useEffect(() => {
-        const id = setInterval(() => setTick(t => t + 1), 500);
-        return () => clearInterval(id);
-    }, []);
-    const wrapStyle: React.CSSProperties = {
-        marginTop: 12, padding: "10px 12px",
-        background: "rgba(0,0,0,0.35)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: 6,
-        fontFamily: "ui-monospace, Menlo, Consolas, monospace",
-        fontSize: 11.5,
-        color: "#cbd0e0",
-        lineHeight: 1.55
-    };
-    const row = (k: string, v: string | number | boolean) => (
-        <div><span style={{ color: "#8a91a3" }}>{k}:</span> <span style={{ color: "#fbefff" }}>{String(v)}</span></div>
-    );
-    return (
-        <div style={wrapStyle} data-tick={tick}>
-            <div style={{ fontWeight: 700, color: "#fbefff", marginBottom: 4 }}>🔍 Debug — live render state</div>
-            {row("observer", diagnostics.started ? "RUNNING" : "stopped")}
-            {row("popouts seen", diagnostics.popoutsSeen)}
-            {row("popouts with userId", diagnostics.popoutsWithUserId)}
-            {row("banners applied", diagnostics.bannersApplied)}
-            {row("themes applied", diagnostics.themesApplied)}
-            {row("last userId", diagnostics.lastUserId || "(none yet)")}
-            {row("last banner el", diagnostics.lastBannerEl)}
-            {row("last banner URL", diagnostics.lastBannerUrl.slice(0, 60) || "(none)")}
-            {row("last error", diagnostics.lastError || "(none)")}
-            <div style={{ marginTop: 6 }}>
-                <Button size={Button.Sizes.SMALL} onClick={rescan}>🔄 Force rescan now</Button>
-            </div>
-        </div>
-    );
-}
-
 export default definePlugin({
     name: "DMProfileFlair",
     description:
@@ -1005,15 +782,10 @@ export default definePlugin({
         style = createAndAppendStyle("dm-profile-flair", managedStyleRootNode);
         style.textContent = buildCss();
         startObserver();
-        // Mount the debug overlay after the page DOM settles. Discord's
-        // appMount can take a moment to attach on cold start; 1500ms is the
-        // same cushion DiscordmaxxerHub uses.
-        setTimeout(mountDebugOverlay, 1500);
     },
 
     stop() {
         stopObserver();
-        unmountDebugOverlay();
         style?.remove();
         style = null;
         // Reset the warn-once latch so toggling the plugin off+on re-surfaces

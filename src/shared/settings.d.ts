@@ -63,6 +63,7 @@ export interface State {
     updater?: {
         ignoredVersion?: string;
         snoozeUntil?: number;
+        snoozedVersion?: string;
     };
 
     /** Discordmaxxer — MAXXER++ "beta builds" perk. When true,
