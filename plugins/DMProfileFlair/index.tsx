@@ -33,7 +33,7 @@ import { definePluginSettings } from "@api/Settings";
 import { managedStyleRootNode } from "@api/Styles";
 import { createAndAppendStyle } from "@utils/css";
 import definePlugin, { OptionType } from "@utils/types";
-import { Button, React, Toasts, UserStore } from "@webpack/common";
+import { Button, React, RestAPI, Toasts, UserStore } from "@webpack/common";
 
 import { getRosterProfileFlair, ProfileFlair } from "../_dm-shared/roster";
 import { Tier } from "../_dm-shared/vip";
@@ -182,6 +182,16 @@ async function postFlairUpdate(profile: Partial<ProfileFlair>, replace: boolean)
             return false;
         }
         toast("✅ Profile flair saved — other Discordmaxxer users see it within ~5 min");
+        // TournamentMode silently suppresses banner + animated avatar (it's
+        // the whole point of TM — free up CPU/GPU). The save itself works
+        // fine, but the visual won't appear until TM is toggled off, which
+        // looks indistinguishable from a broken save. Call it out explicitly.
+        if (isTournamentModeActive() && (profile.bannerUrl || profile.avatarAnimatedUrl)) {
+            toast(
+                "⚠ TournamentMode is on — your banner + animated avatar won't render until you toggle TM off. Theme colors still paint.",
+                Toasts.Type.MESSAGE, 8000
+            );
+        }
         return true;
     } catch (e) {
         console.warn("[DMProfileFlair] save failed:", e);
@@ -208,9 +218,181 @@ function validateLocal(profile: Partial<ProfileFlair>): string | null {
     return null;
 }
 
+// ─── Vanilla-Discord broadcast (Path A) ────────────────────────────────
+// Optional, opt-in, one-shot: PATCH the user's REAL Discord profile so that
+// flair becomes visible to non-Discordmaxxer users too. Three independent
+// fields, three independent buttons — colors, avatar, banner — each gated
+// behind a confirm modal.
+//
+// Hard rules carried from DMBadge channels C/D and CLAUDE.md:
+//   - Fires only on explicit user click (never on plugin start, never on
+//     setting change unless user clicked a dedicated button).
+//   - Never re-asserts. If the user changes the value via Discord's normal
+//     Settings → Profiles UI, we don't fight them.
+//   - One-time apply per click; toggling off does NOT undo (user reverts via
+//     Discord normally).
+//
+// Endpoint shape (verified via DMBadge — same pattern):
+//   PATCH /users/@me/profile  body: { theme_colors: [int, int] }     → free
+//   PATCH /users/@me/profile  body: { avatar: "data:image/...;base64,..." } → static free, GIF requires Nitro
+//   PATCH /users/@me/profile  body: { banner: "data:image/...;base64,..." } → requires Nitro
+//
+// Discord returns 400 with code 50035 + message naming the field if the
+// account doesn't have Nitro for an animated/banner upload. We pattern-match
+// that to a clear "Nitro required" toast.
+
+/** Convert "#RRGGBB" → decimal int (Discord's theme_colors API takes ints). */
+function hexToInt(hex: string): number | null {
+    const m = hex.trim().match(/^#?([0-9a-f]{6})$/i);
+    if (!m) return null;
+    return parseInt(m[1], 16);
+}
+
+/** Fetch a remote URL's bytes and return as a base64 data URI suitable for
+ *  Discord's `avatar` / `banner` PATCH fields. Routed through the dm-media://
+ *  proxy because Chromium ORB blocks cross-origin no-CORS fetches in the
+ *  renderer for arbitrary HTTPS hosts (same reason banner-video uses it). */
+async function urlToDataUri(httpsUrl: string): Promise<string | null> {
+    try {
+        const proxied = httpsUrl.startsWith("https://")
+            ? `dm-media://proxy/${encodeURIComponent(httpsUrl)}`
+            : httpsUrl;
+        const res = await fetch(proxied);
+        if (!res.ok) {
+            console.warn(`[DMProfileFlair] urlToDataUri ${httpsUrl} → ${res.status}`);
+            return null;
+        }
+        const blob = await res.blob();
+        return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.warn("[DMProfileFlair] urlToDataUri failed:", e);
+        return null;
+    }
+}
+
+/** Extract a usable error label from a Discord 4xx response. Specifically
+ *  detects the "feature requires Nitro" shape so we can route to a tailored
+ *  toast instead of a generic "save failed". */
+function classifyDiscordError(err: any): { nitroRequired: boolean; label: string } {
+    const body = err?.body ?? err?.response?.body ?? {};
+    const code = body?.code;
+    const message: string = body?.message ?? err?.message ?? "unknown";
+    // Common "premium required" shapes Discord returns. The exact code/text
+    // has moved around between client builds; check the union.
+    const looksLikeNitro =
+        code === 50001 ||
+        code === 50054 ||
+        /nitro|premium|boost|animated/i.test(message) ||
+        /requires.*premium/i.test(message);
+    return { nitroRequired: looksLikeNitro, label: message };
+}
+
+async function broadcastThemeColors(primaryHex: string, secondaryHex: string): Promise<boolean> {
+    const p = hexToInt(primaryHex);
+    const s = hexToInt(secondaryHex);
+    if (p === null || s === null) {
+        toast("Both theme colors must be valid #RRGGBB hex before broadcasting.", Toasts.Type.FAILURE, 5000);
+        return false;
+    }
+    try {
+        await RestAPI.patch({
+            url: "/users/@me/profile",
+            body: { theme_colors: [p, s] }
+        });
+        toast("✅ Theme colors broadcast — visible to everyone (vanilla Discord included).", Toasts.Type.SUCCESS, 5000);
+        return true;
+    } catch (e: any) {
+        const { label } = classifyDiscordError(e);
+        console.warn("[DMProfileFlair] broadcastThemeColors failed:", e);
+        toast(`Broadcast failed: ${label}`, Toasts.Type.FAILURE, 6000);
+        return false;
+    }
+}
+
+async function broadcastAvatar(url: string): Promise<boolean> {
+    if (!URL_RE.test(url)) {
+        toast("Avatar URL must be https:// and ≤250 chars before broadcasting.", Toasts.Type.FAILURE, 5000);
+        return false;
+    }
+    toast("Downloading avatar bytes…", Toasts.Type.MESSAGE, 3000);
+    const dataUri = await urlToDataUri(url);
+    if (!dataUri) {
+        toast("Couldn't download the avatar URL. Verify it's a direct image link (not a webpage).", Toasts.Type.FAILURE, 6000);
+        return false;
+    }
+    try {
+        await RestAPI.patch({
+            url: "/users/@me/profile",
+            body: { avatar: dataUri }
+        });
+        toast("✅ Avatar broadcast to your real Discord profile.", Toasts.Type.SUCCESS, 5000);
+        return true;
+    } catch (e: any) {
+        const { nitroRequired, label } = classifyDiscordError(e);
+        console.warn("[DMProfileFlair] broadcastAvatar failed:", e);
+        if (nitroRequired) {
+            toast(
+                "⚠ Nitro required for an animated/GIF avatar. A static PNG/JPG would upload fine on free.",
+                Toasts.Type.FAILURE, 8000
+            );
+        } else {
+            toast(`Avatar broadcast failed: ${label}`, Toasts.Type.FAILURE, 6000);
+        }
+        return false;
+    }
+}
+
+async function broadcastBanner(url: string): Promise<boolean> {
+    if (!URL_RE.test(url)) {
+        toast("Banner URL must be https:// and ≤250 chars before broadcasting.", Toasts.Type.FAILURE, 5000);
+        return false;
+    }
+    toast("Downloading banner bytes…", Toasts.Type.MESSAGE, 3000);
+    const dataUri = await urlToDataUri(url);
+    if (!dataUri) {
+        toast("Couldn't download the banner URL. Verify it's a direct image link (not a webpage).", Toasts.Type.FAILURE, 6000);
+        return false;
+    }
+    try {
+        await RestAPI.patch({
+            url: "/users/@me/profile",
+            body: { banner: dataUri }
+        });
+        toast("✅ Banner broadcast to your real Discord profile.", Toasts.Type.SUCCESS, 5000);
+        return true;
+    } catch (e: any) {
+        const { nitroRequired, label } = classifyDiscordError(e);
+        console.warn("[DMProfileFlair] broadcastBanner failed:", e);
+        if (nitroRequired) {
+            toast(
+                "⚠ Nitro required for a Discord banner upload. (Theme colors broadcast works on free — try that for a free-tier color identity.)",
+                Toasts.Type.FAILURE, 8000
+            );
+        } else {
+            toast(`Banner broadcast failed: ${label}`, Toasts.Type.FAILURE, 6000);
+        }
+        return false;
+    }
+}
+
 function FlairEditor() {
     const s = settings.store;
     const [busy, setBusy] = React.useState(false);
+    // Track TM state live so the warning notice flips on/off without a panel
+    // reopen. Cheap interval — every 2s is plenty, TM toggles are user-driven.
+    const [tmActive, setTmActive] = React.useState(isTournamentModeActive());
+    React.useEffect(() => {
+        const id = window.setInterval(() => {
+            const now = isTournamentModeActive();
+            setTmActive(prev => (prev === now ? prev : now));
+        }, 2000);
+        return () => clearInterval(id);
+    }, []);
 
     const onSave = async () => {
         // Normalize colors before sending — the worker validates strict
@@ -252,6 +434,56 @@ function FlairEditor() {
         setBusy(false);
     };
 
+    // ── Vanilla broadcast handlers ──────────────────────────────────────
+    // Each handler does its own confirm() and then fires ONCE. We don't
+    // batch all three into a single button because each touches a
+    // different Discord profile field with different Nitro requirements —
+    // batching would conflate the "Nitro required" error and make it
+    // ambiguous which field caused the failure.
+    const broadcastConfirmCopy = (kind: "theme colors" | "avatar" | "banner", extra = "") =>
+        `Broadcast your ${kind} to your REAL Discord profile?\n\n` +
+        `This sets the value on your actual Discord account — everyone (vanilla Discord users included) will see it on your profile.\n\n` +
+        `We only PATCH once when you click. We never re-assert if you change it back via Discord Settings → Profiles.\n\n` +
+        (extra ? `${extra}\n\n` : "") +
+        `⚠ Heads up: this technically crosses the same TOS gray-area line as DMBadge's bio/pronouns toggles (Discord forbids third-party clients automating account-level actions). One-click-on-your-consent + no re-assert is what we believe keeps it on the 'tool' side vs 'self-bot'. Enforcement against personal use is rare, but flip with eyes open.`;
+
+    const onBroadcastColors = async () => {
+        const p = s.myThemeColorPrimary.trim();
+        const sec = s.myThemeColorSecondary.trim();
+        if (!p || !sec) {
+            toast("Set both primary + secondary theme colors before broadcasting.", Toasts.Type.FAILURE, 5000);
+            return;
+        }
+        if (!confirm(broadcastConfirmCopy("theme colors", "✅ Works on FREE Discord — no Nitro needed."))) return;
+        setBusy(true);
+        await broadcastThemeColors(p, sec);
+        setBusy(false);
+    };
+
+    const onBroadcastAvatar = async () => {
+        const u = s.myAvatarAnimatedUrl.trim();
+        if (!u) {
+            toast("Set an avatar URL above before broadcasting.", Toasts.Type.FAILURE, 5000);
+            return;
+        }
+        if (!confirm(broadcastConfirmCopy("avatar", "ℹ Static PNG/JPG works on free Discord. Animated GIF requires Nitro — Discord will reject the upload otherwise (we'll surface the error)."))) return;
+        setBusy(true);
+        await broadcastAvatar(u);
+        setBusy(false);
+    };
+
+    const onBroadcastBanner = async () => {
+        const u = s.myBannerUrl.trim();
+        if (!u) {
+            toast("Set a banner URL above before broadcasting.", Toasts.Type.FAILURE, 5000);
+            return;
+        }
+        if (!confirm(broadcastConfirmCopy("banner", "⚠ Discord banners require Nitro for any user. Without Nitro this PATCH will fail (we'll show a clear error). Theme colors broadcast works without Nitro — try that first."))) return;
+        setBusy(true);
+        await broadcastBanner(u);
+        setBusy(false);
+    };
+
     const wrapStyle: React.CSSProperties = {
         marginTop: 12, padding: "12px 14px",
         background: "rgba(226, 91, 255, 0.05)",
@@ -262,9 +494,39 @@ function FlairEditor() {
     const noteStyle: React.CSSProperties = { fontSize: 11.5, color: "#cbd0e0", opacity: 0.85, marginBottom: 8 };
     const btnRow: React.CSSProperties = { display: "flex", gap: 8, marginTop: 8 };
 
+    const tmWarnStyle: React.CSSProperties = {
+        marginBottom: 10, padding: "8px 10px",
+        background: "rgba(255, 200, 60, 0.12)",
+        border: "1px solid rgba(255, 200, 60, 0.45)",
+        borderRadius: 6,
+        color: "#ffe9a8", fontSize: 12, lineHeight: 1.45
+    };
+
+    const broadcastWrapStyle: React.CSSProperties = {
+        marginTop: 14, paddingTop: 12,
+        borderTop: "1px dashed rgba(226, 91, 255, 0.35)"
+    };
+    const broadcastTitleStyle: React.CSSProperties = {
+        fontSize: 13, fontWeight: 700, color: "#fbefff", marginBottom: 6
+    };
+    const broadcastNoteStyle: React.CSSProperties = {
+        fontSize: 11.5, color: "#cbd0e0", opacity: 0.85, marginBottom: 10, lineHeight: 1.5
+    };
+    const broadcastBtnRow: React.CSSProperties = {
+        display: "flex", flexDirection: "column", gap: 6, marginTop: 8
+    };
+
     return (
         <div style={wrapStyle}>
             <div style={titleStyle}>🎨 Save your custom flair</div>
+            {tmActive && (
+                <div style={tmWarnStyle}>
+                    🟡 <b>TournamentMode is currently active.</b> Your banner and animated avatar
+                    will be <b>suppressed</b> in profile popouts until you toggle TM off (TM exists
+                    to free up CPU/GPU, so animated content is paused by design). Theme colors
+                    still render normally.
+                </div>
+            )}
             <div style={noteStyle}>
                 These values are sent to the Discordmaxxer roster and rendered for other
                 Discordmaxxer users. Vanilla Discord users see your stock profile.
@@ -279,6 +541,28 @@ function FlairEditor() {
                     ✕ Clear all my flair
                 </Button>
             </div>
+
+            <div style={broadcastWrapStyle}>
+                <div style={broadcastTitleStyle}>📡 Broadcast to vanilla Discord (one-time)</div>
+                <div style={broadcastNoteStyle}>
+                    The buttons above save flair that <b>only other Discordmaxxer users</b> can see.
+                    These buttons below PATCH your <b>real Discord profile</b> so <b>everyone</b> sees it —
+                    Nitro friends, normies, mobile-only users, the works. Fires once per click; never re-asserts.
+                    <br /><br />
+                    <b>Theme colors:</b> work on free Discord. <b>Static avatar:</b> works on free. <b>Animated avatar + any banner:</b> Discord requires Nitro server-side.
+                </div>
+                <div style={broadcastBtnRow}>
+                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastColors} disabled={busy}>
+                        📡 Broadcast theme colors (free)
+                    </Button>
+                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastAvatar} disabled={busy}>
+                        📡 Broadcast avatar (static = free, animated = Nitro)
+                    </Button>
+                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastBanner} disabled={busy}>
+                        📡 Broadcast banner (Nitro required)
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }
@@ -292,7 +576,8 @@ const settings = definePluginSettings({
             "✅ Good: https://i.imgur.com/abc123.png  ❌ Bad: https://imgur.com/gallery/abc123 (HTML page, won't render). " +
             "On imgur: right-click the image → 'Copy image address' to get the direct URL. " +
             "Recommended size: 600×240 (or any 5:2 ratio — Discord's banner slot is 300×120 in popouts, 680×272 in full profile; 2× pixel density looks crispest). " +
-            "Supports png/jpg/webp/gif images OR short mp4/webm videos. ≤5MB image / ≤15MB video recommended.",
+            "Supports png/jpg/webp/gif images OR short mp4/webm videos. ≤5MB image / ≤15MB video recommended. " +
+            "⚠ Suppressed while TournamentMode is active (any banner — image OR video — is paused; TM exists to free up GPU during matches).",
         default: ""
     },
     myAvatarAnimatedUrl: {
@@ -658,6 +943,19 @@ function applyAvatar(avatar: HTMLImageElement, url: string) {
     }
 }
 
+/** Background-image variant for call surfaces / Stage tiles that render the
+ *  avatar as a <div style="background-image: ..."> instead of <img>. Stash
+ *  the original inline backgroundImage so stop() can restore it. */
+function applyBackgroundAvatar(el: HTMLElement, url: string) {
+    const newBg = `url("${url}")`;
+    if (el.style.backgroundImage === newBg) return;
+    if (!el.dataset.dmFlairOriginalBg) {
+        el.dataset.dmFlairOriginalBg = el.style.backgroundImage || "";
+    }
+    el.style.setProperty("background-image", newBg, "important");
+    el.setAttribute("data-dm-flair-bg-avatar-applied", "1");
+}
+
 function scanForPopouts(_root: ParentNode = document) {
     const me = UserStore.getCurrentUser?.();
     const tmActive = isTournamentModeActive();
@@ -688,12 +986,22 @@ function scanForPopouts(_root: ParentNode = document) {
         }
     }
 
-    // ── Avatar swaps page-wide (member list, chat, voice, DM headers, popout) ──
-    // For each [class*="avatar__"] img, extract its userId from the src and
-    // apply that user's roster avatar flair. This naturally covers self AND
-    // other users in one pass — every img tells us whose it is via its src.
+    // ── Avatar swaps page-wide (member list, chat, voice, calls, DM headers, popout) ──
+    // For each <img> whose src is a Discord avatar CDN URL, extract its
+    // userId and apply that user's roster avatar flair. This naturally
+    // covers self AND other users in one pass — every img tells us whose
+    // it is via its src.
+    //
+    // We deliberately do NOT class-filter (e.g. [class*="avatar__"]) here.
+    // Discord uses different class tokens across surfaces — `avatar__` for
+    // member-list / chat / popout, but `voiceUserAvatar__`, `callTileAvatar__`,
+    // `videoWrapper__`, `userTile__` etc. for voice + video call surfaces.
+    // Matching purely by `/avatars/<userId>/` in src is the only invariant
+    // that holds everywhere, including the big circular avatar tile shown
+    // when a user is in voice with video off, the floating call window, and
+    // the connected-users sidebar under the voice channel.
     if (!tmActive) {
-        document.querySelectorAll('img[class*="avatar__"]').forEach(img => {
+        document.querySelectorAll("img").forEach(img => {
             const el = img as HTMLImageElement;
             const src = el.currentSrc || el.src || "";
             const m = src.match(/\/avatars\/(\d{17,20})\//);
@@ -703,6 +1011,22 @@ function scanForPopouts(_root: ParentNode = document) {
             if (avatarFlair?.avatarAnimatedUrl) {
                 applyAvatar(el, avatarFlair.avatarAnimatedUrl);
             }
+        });
+        // Background-image avatar tiles — some call surfaces (notably the
+        // "no video, big circle avatar" user tile in the main call view, and
+        // certain Stage/voice-party variants) render the avatar as a
+        // <div style="background-image: url(...avatars/<userId>/...)"> rather
+        // than as an <img>. Scan every element with an inline backgroundImage
+        // that matches the avatar CDN pattern and override the URL.
+        document.querySelectorAll<HTMLElement>('[style*="/avatars/"]').forEach(el => {
+            const bg = el.style.backgroundImage;
+            if (!bg) return;
+            const m = bg.match(/\/avatars\/(\d{17,20})\//);
+            if (!m) return;
+            const userId = m[1];
+            const avatarFlair = resolveFlairForUserId(userId, "avatar");
+            if (!avatarFlair?.avatarAnimatedUrl) return;
+            applyBackgroundAvatar(el, avatarFlair.avatarAnimatedUrl);
         });
         // Profile-view fallback: large avatars (≥60px) that don't have a CDN
         // URL we could match (default-avatar users). If we're viewing our own
@@ -766,6 +1090,14 @@ function stopObserver() {
         if (orig) img.src = orig;
         delete img.dataset.dmFlairOriginalSrc;
         img.removeAttribute("data-dm-flair-avatar-applied");
+    });
+    // Same restore path for background-image call/Stage avatar tiles.
+    document.querySelectorAll<HTMLElement>("[data-dm-flair-bg-avatar-applied]").forEach(el => {
+        const orig = el.dataset.dmFlairOriginalBg;
+        if (orig) el.style.setProperty("background-image", orig);
+        else el.style.removeProperty("background-image");
+        delete el.dataset.dmFlairOriginalBg;
+        el.removeAttribute("data-dm-flair-bg-avatar-applied");
     });
     document.querySelectorAll(".dm-flair-banner-video").forEach(v => v.remove());
 }
