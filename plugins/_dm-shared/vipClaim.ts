@@ -32,7 +32,9 @@ export interface ClaimBinding {
     code: string;
     /** The HWID this binding is locked to. */
     hwid: string;
-    /** Tier granted by this binding. v0.1 always MAXXER_PLUS_PLUS. */
+    /** Tier granted by this binding. Reflected from the worker response;
+     *  v0.6+ worker derives per-code tier from metadata. Legacy bindings
+     *  default to MAXXER_PLUS_PLUS. */
     tier: Tier;
     /** Unix ms when last successfully validated against the worker. */
     lastValidatedAt: number;
@@ -43,6 +45,13 @@ export interface ClaimBinding {
      *  via a sequential KV counter; preserved in the local cache so the
      *  TierFlair plugin (v0.6.1+) can render the # badge without a round-trip. */
     founderNumber?: number;
+    /** Unix ms when this binding expires (worker-set). Undefined =
+     *  lifetime. tierFromCachedBinding() returns FREE once we're past
+     *  this without needing a network round-trip. */
+    expiresAt?: number;
+    /** Product scope from the worker: "om" | "dm" | "both". Diagnostic;
+     *  not used for client-side enforcement (worker is authoritative). */
+    scope?: string;
 }
 
 export const OFFLINE_TRUST_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -64,13 +73,25 @@ export function isValidCode(input: string): boolean {
 
 export interface ClaimResult {
     ok: boolean;
-    status?: "claimed" | "idempotent";
+    status?: "claimed" | "idempotent" | "expired" | "scope-mismatch";
     error?: string;
     boundHwid?: string;
     /** When the worker recognises a Founder code, it assigns the next
      *  sequential number (1-33) and returns it here. Stored in the
      *  ClaimBinding for permanent display by the TierFlair plugin. */
     founderNumber?: number;
+    /** Tier the worker granted (1=MAXXER, 2=MAXXER+, 3=MAXXER++). Absent
+     *  for legacy worker responses; caller should default to
+     *  MAXXER_PLUS_PLUS when missing. */
+    tier?: number;
+    /** Unix epoch millis when the subscription expires. Absent = lifetime.
+     *  Stored in the ClaimBinding; the plugin proactively drops the
+     *  binding to FREE once Date.now() > expiresAt without waiting for
+     *  the next re-validation cycle. */
+    expiresAt?: number;
+    /** Product scope: "om" | "dm" | "both". Returned for diagnostics +
+     *  to confirm the scope-enforcement layer is engaged. */
+    scope?: string;
 }
 
 /** First-time claim or idempotent re-claim against the worker. The userId
@@ -86,6 +107,14 @@ export async function claimAgainstWorker(code: string, hwid: string, userId?: st
             body: JSON.stringify({
                 code: normalizeCode(code),
                 hwid,
+                // Identifies this claim as coming from Discordmaxxer. The
+                // worker uses this to enforce code scope: codes minted
+                // with scope="om" (Optimizationmaxxing lifetime) get
+                // rejected here with status="scope-mismatch". Legacy
+                // codes minted before the schema upgrade have no scope
+                // metadata and are treated as scope="both", so this
+                // field is transparent to them.
+                product: "dm",
                 ...(userId ? { userId } : {})
             })
         });
@@ -95,10 +124,25 @@ export async function claimAgainstWorker(code: string, hwid: string, userId?: st
                 ok: true,
                 status: body.status,
                 boundHwid: body.boundHwid,
-                founderNumber: typeof body.founderNumber === "number" ? body.founderNumber : undefined
+                founderNumber: typeof body.founderNumber === "number" ? body.founderNumber : undefined,
+                tier: typeof body.tier === "number" ? body.tier : undefined,
+                expiresAt: typeof body.expiresAt === "number" ? body.expiresAt : undefined,
+                scope: typeof body.scope === "string" ? body.scope : undefined,
             };
         }
-        return { ok: false, error: body?.error || `http ${res.status}`, boundHwid: body?.boundHwid };
+        // The worker returns 410 for expired subscriptions and 403 for
+        // scope mismatches. Surface those distinctly so the caller can
+        // wipe the binding (expired) vs show a "wrong product" error
+        // (scope-mismatch) instead of generic "claim failed."
+        const statusLabel = res.status === 410 ? "expired"
+            : res.status === 403 ? "scope-mismatch"
+            : undefined;
+        return {
+            ok: false,
+            status: statusLabel,
+            error: body?.error || `http ${res.status}`,
+            boundHwid: body?.boundHwid,
+        };
     } catch (e: any) {
         return { ok: false, error: `network: ${e?.message || e}` };
     }
@@ -118,6 +162,11 @@ export async function reValidateBinding(b: ClaimBinding, userId?: string): Promi
     if (r.ok && r.status === "idempotent") return true;
     if (r.ok && r.status === "claimed") return true; // first re-claim after worker KV reset
     if (!r.ok && r.error?.startsWith("network")) return null;
+    // Expired or scope-mismatch are both terminal "this binding is no
+    // longer valid" — caller wipes the local cache and downgrades to
+    // FREE. (Worker schema v0.6+ — older worker responses don't carry
+    // these statuses, fall through to false same as today.)
+    if (r.status === "expired" || r.status === "scope-mismatch") return false;
     return false;
 }
 
@@ -212,6 +261,12 @@ export function writeBinding(b: ClaimBinding | null): void {
 export function tierFromCachedBinding(): Tier {
     const b = readBinding();
     if (!b) return Tier.FREE;
+    // Subscription expiry (v0.6 worker schema). If the worker stamped
+    // an expiresAt on this binding and we're past it, drop to FREE
+    // without waiting for the next re-validation cycle.
+    if (typeof b.expiresAt === "number" && Date.now() > b.expiresAt) {
+        return Tier.FREE;
+    }
     const ageMs = Date.now() - b.lastValidatedAt;
     if (ageMs < OFFLINE_TRUST_MS) return b.tier;
     return Tier.FREE;
