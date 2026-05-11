@@ -54,22 +54,22 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "TournamentMode",
     "CompactView",
     "MassDelete",
-    "DiscordmaxxerBadge",
+    "DMBadge",
     "DMProfileFlair", // user-set custom banner / animated avatar / theme colors
-    "DiscordmaxxerTheme",
+    "DMTheme",
     "VideoBackground",
-    "DiscordmaxxerHub",
-    "DiscordmaxxerCursor", // disabled-effect by default — user picks skin
-    "DiscordmaxxerPrivacy", // one-shot consent prompt to disable Discord telemetry
-    "DiscordmaxxerTrim", // hides Family Center / Nitro promos / HypeSquad
-    "DiscordmaxxerPresence", // broadcasts "Playing Discordmaxxer" rich-presence activity
-    "DiscordmaxxerGrant", // right-click → Grant tier (admin-only UI); cross-references local grants on view
-    "DiscordmaxxerVipClaim", // settings panel: redeem HWID-locked VIP code → unlocks MAXXER++ tier
-    "DiscordmaxxerTierFlair", // cross-user status flex: avatar ring, name tint, popout banner, founder gem
-    "DiscordmaxxerTyping", // MAXXER perk: [VIP]/[VIP+]/[MVP++] prefix in typing indicator
-    "DiscordmaxxerStreamMute", // local mute toggle for incoming screenshare audio (Ctrl+Shift+M)
-    "DiscordmaxxerBeta", // MAXXER++ perk: opt-in beta channel for prerelease GitHub tags
-    "DiscordmaxxerVotes" // MAXXER++ perk: panel for voting on candidate features (polls in #vip-chat)
+    "DMHub",
+    "DMCursor", // disabled-effect by default — user picks skin
+    "DMPrivacy", // one-shot consent prompt to disable Discord telemetry
+    "DMTrim", // hides Family Center / Nitro promos / HypeSquad
+    "DMPresence", // broadcasts "Playing Discordmaxxer" rich-presence activity
+    "DMGrant", // right-click → Grant tier (admin-only UI); cross-references local grants on view
+    "DMVipClaim", // settings panel: redeem HWID-locked VIP code → unlocks MAXXER++ tier
+    "DMTierFlair", // cross-user status flex: avatar ring, name tint, popout banner, founder gem
+    "DMTyping", // MAXXER perk: [VIP]/[VIP+]/[MVP++] prefix in typing indicator
+    "DMStreamMute", // local mute toggle for incoming screenshare audio (Ctrl+Shift+M)
+    "DMBeta", // MAXXER++ perk: opt-in beta channel for prerelease GitHub tags
+    "DMVotes" // MAXXER++ perk: panel for voting on candidate features (polls in #vip-chat)
 ];
 
 const VENCORD_DEFAULTS = {

@@ -90,7 +90,7 @@ function showConsentPrompt() {
 }
 
 export default definePlugin({
-    name: "DiscordmaxxerPrivacy",
+    name: "DMPrivacy",
     description:
         "First-launch consent prompt to disable Discord's data-collection toggles (analytics, game detection, contact sync, personalization). One-shot: PATCHes once on user click, never re-asserts. Fire it again from settings if you want to re-prompt.",
     authors: [{ name: "Diggy", id: 0n }],

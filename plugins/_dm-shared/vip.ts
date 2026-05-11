@@ -15,6 +15,7 @@
 
 import { UserStore } from "@webpack/common";
 
+import "./migrateLegacySettings";
 import { getRosterTier } from "./roster";
 
 export const enum Tier {

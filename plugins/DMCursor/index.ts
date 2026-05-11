@@ -271,7 +271,7 @@ function teardownTracking() {
 }
 
 export default definePlugin({
-    name: "DiscordmaxxerCursor",
+    name: "DMCursor",
     description:
         "Custom anime cursors ported from the maxxer suite (clipmaxxing/dropmap origin). Six skins — Sharingan, Rinnegan, Rasengan, Chidori, Dragon Sword, Stiiizy (smoke trail). Pick via settings; toggling the plugin off restores Discord's default cursor.",
     authors: [{ name: "Diggy", id: 0n }],

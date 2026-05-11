@@ -198,7 +198,7 @@ const settings = definePluginSettings({
 });
 
 export default definePlugin({
-    name: "DiscordmaxxerPresence",
+    name: "DMPresence",
     description:
         "Broadcasts 'Playing Discordmaxxer' as your activity so friends see what client you use. " +
         "Standard rich-presence — no profile mutations. " +

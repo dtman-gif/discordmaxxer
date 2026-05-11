@@ -242,7 +242,7 @@ const badge: ProfileBadge = {
 };
 
 export default definePlugin({
-    name: "DiscordmaxxerBadge",
+    name: "DMBadge",
     description:
         "Identity layer for Discordmaxxer. Channel A: a small DM badge on your profile (mod-only visibility). " +
         "Channels C/D: opt-in toggles to append a bio line or set a pronouns tag — applied ONCE per flip, " +

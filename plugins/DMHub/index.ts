@@ -247,12 +247,12 @@ interface QuickToggle {
 
 const QUICK_TOGGLES: QuickToggle[] = [
     { plugin: "VideoBackground", label: "🌟 Video Background", settingKey: "enable", minTier: Tier.MAXXER_PLUS, note: "Set URL in Discordmaxxer plugin settings" },
-    { plugin: "DiscordmaxxerTheme", label: "🎨 Maxxer Theme", settingKey: "enable" },
+    { plugin: "DMTheme", label: "🎨 Maxxer Theme", settingKey: "enable" },
     { plugin: "TournamentMode", label: "🎮 Tournament Mode", settingKey: "manuallyActive", note: "Or press Ctrl+Alt+T", noRestart: true },
     { plugin: "CompactView", label: "📐 Compact View", settingKey: "manuallyActive", note: "Or press Ctrl+Alt+H", noRestart: true },
     { plugin: "MassDelete", label: "🗑️ Mass-Delete menu", settingKey: "enableContextMenu", note: "OPT-IN — TOS risk" },
-    { plugin: "DiscordmaxxerBadge", label: "💎 Profile Badge", settingKey: "showOnOwnProfile" },
-    { plugin: "DiscordmaxxerStreamMute", label: "🔇 Mute screenshare audio", settingKey: "muted", note: "Or press Ctrl+Shift+M", noRestart: true }
+    { plugin: "DMBadge", label: "💎 Profile Badge", settingKey: "showOnOwnProfile" },
+    { plugin: "DMStreamMute", label: "🔇 Mute screenshare audio", settingKey: "muted", note: "Or press Ctrl+Shift+M", noRestart: true }
 ];
 
 function vencord(): any {
@@ -431,7 +431,7 @@ function stopObserver() {
 }
 
 export default definePlugin({
-    name: "DiscordmaxxerHub",
+    name: "DMHub",
     description:
         "DM button injected into Discord's user-panel toolbar (next to username, before the mic icon). " +
         "Click for VIP tier badge, premium features, and quick toggles for all Discordmaxxer custom plugins. " +

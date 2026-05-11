@@ -153,7 +153,7 @@ const settings = definePluginSettings({
 });
 
 export default definePlugin({
-    name: "DiscordmaxxerBeta",
+    name: "DMBeta",
     description:
         "MAXXER++ perk — opt into the beta update channel. When enabled, electron-updater accepts GitHub pre-release tags so you get features ahead of the stable channel. Single toggle in plugin settings.",
     authors: [{ name: "Diggy", id: 0n }],

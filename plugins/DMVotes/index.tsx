@@ -311,7 +311,7 @@ const settings = definePluginSettings({
 });
 
 export default definePlugin({
-    name: "DiscordmaxxerVotes",
+    name: "DMVotes",
     description:
         "MAXXER++ perk — vote on what ships next. Real-time HWID-bound voting backed by a Cloudflare Worker tally; one vote per rig per feature. The top-voted candidate ships in the next release.",
     authors: [{ name: "Diggy", id: 0n }],

@@ -550,6 +550,20 @@ const PATCHES = [
             '                responseHeaders["cross-origin-resource-policy"] = ["cross-origin"];\n' +
             '            }'
     },
+    // Update notification strings — belt-and-suspenders alongside the
+    // --disable-updater build flag (which already skips the path that posts
+    // these). If any future Vencord change reintroduces a notify() call we
+    // haven't anticipated, the string is at least correctly branded.
+    {
+        file: "src/Vencord.ts",
+        find: 'title: "Vencord has been updated!",',
+        replace: 'title: "Discordmaxxer has been updated!",'
+    },
+    {
+        file: "src/Vencord.ts",
+        find: 'title: "A Vencord update is available!",',
+        replace: 'title: "A Discordmaxxer update is available!",'
+    },
     // No-op the donor-badge loader. With DonorBadges always empty,
     // getDonorBadges(userId) returns undefined for every user — neither the
     // donor badge nor its "Please consider supporting Vencord" modal ever

@@ -153,7 +153,7 @@ const settings = definePluginSettings({
 });
 
 export default definePlugin({
-    name: "DiscordmaxxerTyping",
+    name: "DMTyping",
     description:
         "MAXXER tier perk — Hypixel-style [VIP]/[VIP+]/[MVP++] bracket prefix in the typing indicator for paid Discordmaxxer subscribers. Pure DOM observer (no webpack patches), works on top of TypingTweaks.",
     authors: [{ name: "Diggy", id: 0n }],

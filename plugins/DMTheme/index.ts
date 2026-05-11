@@ -96,7 +96,7 @@ const settings = definePluginSettings({
 });
 
 export default definePlugin({
-    name: "DiscordmaxxerTheme",
+    name: "DMTheme",
     description:
         "Eight-theme system. Free: Maxxer (magenta+cobalt), Val (Valorant), Sonic (gold+cobalt), DMC (gothic), BO3 (military). MAXXER+ exclusives: Akatsuki (bone+blood+void), DMC: Devil Trigger (Dante red + Sparda blue + DT pulse), Eminence in Shadow (slime+atomic-lightning). Each overrides Discord's full color graph + adds personality flair (typing dots, mention animations, hover effects).",
     authors: [{ name: "Diggy", id: 0n }],

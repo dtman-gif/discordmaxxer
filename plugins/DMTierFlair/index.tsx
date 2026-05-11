@@ -356,7 +356,7 @@ const settings = definePluginSettings({
 });
 
 export default definePlugin({
-    name: "DiscordmaxxerTierFlair",
+    name: "DMTierFlair",
     description:
         "Cross-user status flex (Hypixel-style). Avatar rings, name tints, popout banners, and numbered Founder gems for users in the public roster. Pure cosmetic, opt-out per surface, no webpack patches.",
     authors: [{ name: "Diggy", id: 0n }],

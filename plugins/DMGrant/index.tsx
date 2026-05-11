@@ -100,7 +100,7 @@ const userContextPatch: NavContextMenuPatchCallback = (children, props: any) => 
 };
 
 export default definePlugin({
-    name: "DiscordmaxxerGrant",
+    name: "DMGrant",
     description:
         "Right-click any user to grant them a Discordmaxxer tier (MAXXER / MAXXER+ / MAXXER++). " +
         "v0.1 LOCAL ONLY — affects how their badge + tier-locked features render in YOUR client. " +

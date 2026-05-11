@@ -106,7 +106,7 @@ function refresh() {
 }
 
 export default definePlugin({
-    name: "DiscordmaxxerTrim",
+    name: "DMTrim",
     description:
         "Hides Discord UI cruft that doesn't belong in a power-user client: Family Center (parental controls), Nitro upsells, HypeSquad, server-boost promo cards. Per-item toggles in settings. CSS-only, fully reversible.",
     authors: [{ name: "Diggy", id: 0n }],

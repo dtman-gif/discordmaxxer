@@ -61,8 +61,16 @@ function syncUserplugins() {
 }
 
 function buildVencord() {
-    log("Running Vencord build (pnpm build inside vencord-src/)...");
-    execSync("pnpm build", { cwd: VENCORD_SRC, stdio: "inherit" });
+    log("Running Vencord build (pnpm build --disable-updater inside vencord-src/)...");
+    // --disable-updater bakes IS_UPDATER_DISABLED=true into the bundle (see
+    // vencord-src/scripts/build/common.mjs). Without this flag, Vencord's
+    // internal updater plugin runs at startup, hits the upstream Vencord
+    // GitHub for new commits, and posts a "A Vencord update is available!"
+    // Windows toast — confusing for Discordmaxxer users since they should
+    // update via OUR electron-updater (src/main/updater.ts) targeting our
+    // own GitHub Releases. Disabling Vencord's updater at build time keeps
+    // the user on the Discordmaxxer release channel exclusively.
+    execSync("pnpm build -- --disable-updater", { cwd: VENCORD_SRC, stdio: "inherit" });
 }
 
 function stageDist() {

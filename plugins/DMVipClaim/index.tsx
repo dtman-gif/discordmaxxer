@@ -195,7 +195,7 @@ const settings = definePluginSettings({
 });
 
 export default definePlugin({
-    name: "DiscordmaxxerVipClaim",
+    name: "DMVipClaim",
     description:
         "Redeem a HWID-locked VIP code to unlock MAXXER++ tier. Each code binds to one rig (BIOS UUID + serial + CPU). " +
         "Same backend as optimizationmaxxing — codes work across both products on the same machine. " +
