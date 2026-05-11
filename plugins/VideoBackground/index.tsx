@@ -81,6 +81,11 @@ let videoEl: HTMLVideoElement | null = null;
 let style: HTMLStyleElement;
 // Runtime-only blob URL when the user picks a local file. NOT persisted.
 let localBlobUrl: string | null = null;
+// Set true while we're intentionally pulling the src out from under the
+// <video>. The browser fires an `error` event on src removal which the
+// onerror handler would otherwise mistake for a real hard failure and
+// auto-clear the URL — making toggle-off then toggle-on look broken.
+let tearingDown = false;
 
 function buildCss() {
     const opacity = Math.max(0, Math.min(100, settings.store.opacity)) / 100;
@@ -89,45 +94,64 @@ function buildCss() {
     return `
         /* Override Discord's themed background CSS variables so the chat
            area shows the video through. Sidebars stay semi-opaque (driven
-           by sidebarOpacity setting) for text readability. */
-        :root,
-        .theme-dark,
-        .theme-light,
-        .theme-darker,
-        .visual-refresh {
+           by sidebarOpacity setting) for text readability. Selectors are
+           prefixed with html. to bump specificity above theme rules that
+           tend to use multi-class selectors. */
+        html,
+        html:root,
+        html.theme-dark,
+        html.theme-light,
+        html.theme-darker,
+        html.visual-refresh,
+        html.theme-dark.visual-refresh,
+        html.theme-light.visual-refresh,
+        html.theme-darker.visual-refresh {
+            /* Legacy chrome vars */
             --background-primary: transparent !important;
-            --bg-overlay-chat: transparent !important;
-            --bg-overlay-app-frame: transparent !important;
-            --bg-base-primary: transparent !important;
-            --bg-base-secondary: rgba(0, 0, 0, ${sidebarAlpha * 0.6}) !important;
-            --bg-base-tertiary: rgba(0, 0, 0, ${sidebarAlpha * 0.7}) !important;
             --background-secondary: rgba(0, 0, 0, ${sidebarAlpha * 0.55}) !important;
             --background-secondary-alt: rgba(0, 0, 0, ${sidebarAlpha * 0.65}) !important;
             --background-tertiary: rgba(0, 0, 0, ${sidebarAlpha * 0.7}) !important;
             --background-floating: rgba(0, 0, 0, ${sidebarAlpha * 0.85}) !important;
+            --background-accent: transparent !important;
+            --background-modifier-accent: rgba(255, 255, 255, 0.04) !important;
+            /* Visual-refresh chrome vars */
+            --bg-overlay-chat: transparent !important;
+            --bg-overlay-app-frame: transparent !important;
+            --bg-overlay-1: transparent !important;
+            --bg-overlay-2: rgba(0, 0, 0, ${sidebarAlpha * 0.35}) !important;
             --bg-overlay-3: rgba(0, 0, 0, ${sidebarAlpha * 0.4}) !important;
             --bg-overlay-floating: rgba(0, 0, 0, ${sidebarAlpha * 0.85}) !important;
+            --bg-base-primary: transparent !important;
+            --bg-base-secondary: rgba(0, 0, 0, ${sidebarAlpha * 0.6}) !important;
+            --bg-base-tertiary: rgba(0, 0, 0, ${sidebarAlpha * 0.7}) !important;
+            --bg-base-low: rgba(0, 0, 0, ${sidebarAlpha * 0.45}) !important;
+            --bg-surface-overlay: rgba(0, 0, 0, ${sidebarAlpha * 0.55}) !important;
+            --bg-surface-overlay-tinted: rgba(0, 0, 0, ${sidebarAlpha * 0.55}) !important;
+            --bg-surface-raised: rgba(0, 0, 0, ${sidebarAlpha * 0.65}) !important;
+            --bg-app-frame: transparent !important;
         }
 
-        /* Class-selector fallback for the structural divs Discord paints
-           backgrounds on directly (in case a future Discord update stops
-           honoring the variables in some places). */
-        body,
+        /* Class-selector fallback for structural divs Discord paints
+           backgrounds on directly. html prefix raises specificity above
+           single-class theme rules; html body chain raises further. */
         html,
-        [class^="appMount"],
-        [class*=" appMount"],
-        [class^="app-"],
-        [class*=" app-"],
-        [class^="layers"],
-        [class*=" layers"],
-        [class^="layer"]:first-child,
-        [class*=" layer"]:first-child,
-        [class^="bg-"],
-        [class*=" bg-"],
-        [class*="container"][class*="root"],
-        [class*="base-"][class*="base"],
-        [class^="chat"][class*="chat"] > [class*="content"],
-        [class*="chatContent"] {
+        html body,
+        html body [class^="appMount"],
+        html body [class*=" appMount"],
+        html body [class^="app-"],
+        html body [class*=" app-"],
+        html body [class^="layers"],
+        html body [class*=" layers"],
+        html body [class^="layer"]:first-child,
+        html body [class*=" layer"]:first-child,
+        html body [class^="bg-"],
+        html body [class*=" bg-"],
+        html body [class*="container"][class*="root"],
+        html body [class*="base-"][class*="base"],
+        html body [class^="chat"][class*="chat"] > [class*="content"],
+        html body [class*="chatContent"],
+        html body [class*="visualRefresh"],
+        html body [class*="pageWrapper"] {
             background: transparent !important;
             background-color: transparent !important;
             background-image: none !important;
@@ -186,11 +210,17 @@ function applyVideoSettings() {
 
 function tearDownVideo() {
     if (videoEl) {
+        tearingDown = true;
+        // Detach the error handler first so the synthetic error from removing
+        // src doesn't slip past the flag.
+        videoEl.onerror = null;
+        videoEl.onloadeddata = null;
         videoEl.pause();
         videoEl.removeAttribute("src");
         videoEl.load();
         videoEl.remove();
         videoEl = null;
+        tearingDown = false;
     }
     if (style) style.textContent = "";
 }
@@ -220,6 +250,7 @@ function refresh() {
     // whether the video resource itself fails (CSP / CORS / 404 / format).
     videoEl.onloadeddata = () => console.log("[VideoBackground] loadeddata — video has frames");
     videoEl.onerror = () => {
+        if (tearingDown) return;
         const code = videoEl?.error?.code;
         const msg = videoEl?.error?.message ?? "unknown";
         const codeLabels: Record<number, string> = {

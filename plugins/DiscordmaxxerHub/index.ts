@@ -204,6 +204,15 @@ const HUB_CSS = `
         margin: 6px 0;
         line-height: 1.4;
     }
+    /* When a note immediately follows a row, bind it visually to that row
+     * (left-border + tight margins + indent) so it can't be mistaken for a
+     * section header that applies to subsequent rows. */
+    .dm-hub-row + .dm-hub-info {
+        margin: -2px 10px 4px 10px;
+        padding: 2px 0 2px 8px;
+        border-left: 2px solid rgba(226,91,255,0.4);
+        opacity: 0.75;
+    }
     .dm-hub-footer {
         margin-top: 12px;
         padding-top: 10px;

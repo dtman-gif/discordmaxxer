@@ -517,6 +517,39 @@ const PATCHES = [
             '        // video URLs in media-src so users can use any video CDN.\n' +
             '        pushDirective("media-src", "https:");'
     },
+    // Disable Chromium's Opaque Response Blocking (ORB) for cross-origin
+    // media + image responses by injecting `Cross-Origin-Resource-Policy:
+    // cross-origin` on each response. CSP `media-src https:` permits the
+    // load but ORB is a SEPARATE Chromium security layer that blocks
+    // no-CORS media responses regardless of CSP — the user gets
+    // net::ERR_BLOCKED_BY_ORB with no console error visible. Adding CORP
+    // header tells ORB the resource is intentionally cross-origin safe.
+    // Disabling at the response-header level beats trying disable-features
+    // flags which Chromium ignores in current versions (ORB was promoted
+    // from feature flag to mandatory behavior).
+    {
+        file: "src/main/csp/index.ts",
+        find:
+            '            if (resourceType === "stylesheet") {\n' +
+            '                const header = findHeader(responseHeaders, "content-type");\n' +
+            '                if (header)\n' +
+            '                    responseHeaders[header] = ["text/css"];\n' +
+            '            }',
+        replace:
+            '            if (resourceType === "stylesheet") {\n' +
+            '                const header = findHeader(responseHeaders, "content-type");\n' +
+            '                if (header)\n' +
+            '                    responseHeaders[header] = ["text/css"];\n' +
+            '            }\n\n' +
+            '            // Discordmaxxer: bypass Opaque Response Blocking for media+image\n' +
+            '            // so user-set banner/avatar URLs from any CDN load without\n' +
+            '            // net::ERR_BLOCKED_BY_ORB. See VideoBackground / DMProfileFlair.\n' +
+            '            if (resourceType === "media" || resourceType === "image") {\n' +
+            '                const corpKey = findHeader(responseHeaders, "cross-origin-resource-policy");\n' +
+            '                if (corpKey) delete responseHeaders[corpKey];\n' +
+            '                responseHeaders["cross-origin-resource-policy"] = ["cross-origin"];\n' +
+            '            }'
+    },
     // No-op the donor-badge loader. With DonorBadges always empty,
     // getDonorBadges(userId) returns undefined for every user — neither the
     // donor badge nor its "Please consider supporting Vencord" modal ever

@@ -12,6 +12,9 @@ import "./discordmaxxerPerf";
 import "./discordmaxxerHwid";
 import "./userAssets";
 import "./vesktopProtocol";
+// dmMediaProxy MUST be imported before app.whenReady fires — its module
+// side effect registers `dm-media://` as a privileged scheme.
+import "./dmMediaProxy";
 
 import { app, BrowserWindow, nativeTheme } from "electron";
 
@@ -81,6 +84,30 @@ function init() {
     disabledFeatures.add("WinRetrieveSuggestionsOnlyOnDemand");
     disabledFeatures.add("HardwareMediaKeyHandling");
     disabledFeatures.add("MediaSessionService");
+
+    // Force Windows Graphics Capture API for screenshare. WGC composites the system cursor into the
+    // captured frame for both window and screen sources, whereas the legacy GDI/BitBlt path drops
+    // the cursor on per-window captures of apps in exclusive fullscreen (e.g. Fortnite). Multiple
+    // feature names listed because Chromium renamed/split this flag across versions; unknown
+    // features are ignored, so over-specifying is safe.
+    if (process.platform === "win32") {
+        enabledFeatures.add("AllowWgcCapturer");
+        enabledFeatures.add("AllowWgcScreenCapturer");
+        enabledFeatures.add("AllowWgcWindowCapturer");
+        enabledFeatures.add("WebRtcAllowWgcDesktopCapturer");
+    }
+
+    // Disable Opaque Response Blocking (ORB) so user-provided cross-origin
+    // media URLs work in <video>/<img> elements. Without this, MP4s from
+    // public CDNs (commondatastorage.googleapis.com, sample-videos.com,
+    // anywhere not pre-allowlisted) get net::ERR_BLOCKED_BY_ORB and silently
+    // fail to load. Used by VideoBackground (whole-app background) and
+    // DMProfileFlair (custom banner/avatar). Chromium has renamed this flag
+    // multiple times — over-specify defensively.
+    disabledFeatures.add("OpaqueResponseBlocking");
+    disabledFeatures.add("OpaqueResponseBlockingV01");
+    disabledFeatures.add("OpaqueResponseBlockingV02");
+    disabledFeatures.add("CrossOriginOpenerPolicyByDefault");
 
     if (isLinux) {
         // Support TTS on Linux using https://wiki.archlinux.org/title/Speech_dispatcher

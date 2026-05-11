@@ -55,6 +55,7 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "CompactView",
     "MassDelete",
     "DiscordmaxxerBadge",
+    "DMProfileFlair", // user-set custom banner / animated avatar / theme colors
     "DiscordmaxxerTheme",
     "VideoBackground",
     "DiscordmaxxerHub",

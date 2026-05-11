@@ -34,6 +34,26 @@ const ROSTER_URL = "https://optmaxxing-vip.maxxtopia.workers.dev/roster";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const FETCH_TIMEOUT_MS = 8000;
 
+/** Custom profile flair set by the user — visible only to other Discordmaxxer
+ *  clients (channels E/F/G in DiscordmaxxerBadge). All fields optional; absent
+ *  fields fall through to Discord's stock rendering. Tier-gated at render time:
+ *  banner needs MAXXER+; avatar needs MAXXER+; theme colors need MAXXER++. */
+export interface ProfileFlair {
+    /** https:// URL to image (png/jpg/webp/gif) or short MP4 video for the
+     *  profile-popout banner. ~256 char URL cap; viewer plugin HEAD-checks
+     *  Content-Length and bails on >5MB image / >15MB video. */
+    bannerUrl?: string;
+    /** https:// URL to an animated avatar (GIF or MP4). Replaces the user's
+     *  Discord avatar in profile popouts (P2) and member list + chat (P5).
+     *  Suppressed when TournamentMode is active. */
+    avatarAnimatedUrl?: string;
+    /** Hex string `#RRGGBB` — patched into Discord's
+     *  `--profile-gradient-primary-color` CSS var on the popout root. */
+    themeColorPrimary?: string;
+    /** Hex string `#RRGGBB` — patched into `--profile-gradient-secondary-color`. */
+    themeColorSecondary?: string;
+}
+
 interface RosterEntry {
     tier: Tier;
     via?: "owner" | "subscription" | "grant" | "comp" | "founder";
@@ -43,6 +63,9 @@ interface RosterEntry {
     /** Founder slot 1-33 if the user claimed a FNDR-prefixed code. Drives
      *  the gold # badge in profile popouts (TierFlair plugin). */
     founderNumber?: number;
+    /** v2+ — user-set profile flair (banner / animated avatar / theme colors).
+     *  Always optional. Missing on v1 payloads. */
+    profile?: ProfileFlair;
 }
 
 interface RosterPayload {
@@ -59,7 +82,12 @@ interface CacheState {
 let cache: CacheState | null = null;
 let inFlight: Promise<void> | null = null;
 
-const SUPPORTED_VERSION = 1;
+/** Highest version we know how to read. The worker may emit a lower version
+ *  (e.g. v1 before the worker is redeployed with profile-flair support) — those
+ *  payloads parse fine, they just have no `profile` field on any entry. We
+ *  reject ABOVE this version because that'd be the worker shipping a schema we
+ *  haven't taught the client yet. */
+const SUPPORTED_VERSION = 2;
 
 function isExpired(entry: RosterEntry): boolean {
     if (!entry.expiresAt) return false; // null / undefined = never expires
@@ -149,4 +177,16 @@ export function getRosterFounderNumber(userId: string): number | undefined {
     const entry = cache.users[userId];
     if (!entry || isExpired(entry)) return undefined;
     return entry.founderNumber;
+}
+
+/** Fetch the user-set profile flair for a user (banner, animated avatar, theme
+ *  colors) — visible only to other Discordmaxxer clients. Returns undefined if
+ *  the user hasn't set any flair, isn't on the roster, or their roster entry is
+ *  expired. v1 worker payloads always return undefined here; v2+ may include. */
+export function getRosterProfileFlair(userId: string): ProfileFlair | undefined {
+    ensureFresh();
+    if (!cache) return undefined;
+    const entry = cache.users[userId];
+    if (!entry || isExpired(entry)) return undefined;
+    return entry.profile;
 }

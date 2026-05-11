@@ -728,6 +728,8 @@ function ModalComponent({
         frameRate: "30"
     });
 
+    const hwAccelOn = VesktopNative.app.getEnableHardwareAcceleration();
+
     return (
         <Modals.ModalRoot {...modalProps} size={ModalSize.MEDIUM}>
             <Modals.ModalHeader className={cl("header")}>
@@ -737,6 +739,16 @@ function ModalComponent({
                 <ModalCloseButton onClick={close} />
             </Modals.ModalHeader>
             <Modals.ModalContent className={cl("modal")}>
+                {!hwAccelOn && (
+                    <Card className={cl("hw-accel-warning")}>
+                        <Heading tag="h5">Hardware acceleration is off</Heading>
+                        <Paragraph>
+                            Your screenshare will likely stutter on viewers' screens because the encoder will fall
+                            back to CPU. Enable it in <b>Settings &rarr; Discordmaxxer Settings &rarr; Hardware
+                            Acceleration</b>, then restart.
+                        </Paragraph>
+                    </Card>
+                )}
                 {!selected ? (
                     <ScreenPicker screens={screens} chooseScreen={setSelected} />
                 ) : (
