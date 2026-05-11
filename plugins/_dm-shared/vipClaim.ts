@@ -21,6 +21,8 @@
  * failure trusts the cache for 24h before downgrading to FREE.
  */
 
+import * as DataStore from "@api/DataStore";
+
 import { Tier } from "./vip";
 
 export const WORKER_URL = "https://optmaxxing-vip.maxxtopia.workers.dev/claim";
@@ -121,25 +123,86 @@ export async function reValidateBinding(b: ClaimBinding, userId?: string): Promi
 
 const STORE_KEY = "dm-vip-claim";
 
-export function readBinding(): ClaimBinding | null {
+/**
+ * Storage migration: modern Discord nukes `window.localStorage` (returns
+ * undefined) to prevent token theft from injected scripts. The old
+ * localStorage-backed binding silently broke — writeBinding's try/catch
+ * swallowed the error, claims looked successful but the binding never
+ * persisted, leaving every plugin that called readBinding() with a null
+ * result.
+ *
+ * Migration to Vencord's DataStore (IndexedDB-backed). Sync API is
+ * preserved via a module-level cache populated on first import; first read
+ * before DataStore loads briefly returns null, but plugin start happens
+ * after DataStore is available so this is invisible in practice.
+ *
+ * One-shot legacy migration: on init we check if localStorage somehow
+ * still has the old value (older Discord builds, dev contexts, etc) and
+ * copy it forward before clearing.
+ */
+let cache: ClaimBinding | null = null;
+let loaded = false;
+
+const validateShape = (b: any): ClaimBinding | null => {
+    if (!b || typeof b !== "object") return null;
+    if (typeof b.code !== "string" || typeof b.hwid !== "string") return null;
+    if (!isValidCode(b.code) || b.hwid.length !== 32) return null;
+    return b as ClaimBinding;
+};
+
+const initPromise = (async () => {
+    // Try DataStore first.
     try {
-        const raw = localStorage.getItem(STORE_KEY);
-        if (!raw) return null;
-        const b = JSON.parse(raw) as ClaimBinding;
-        // Sanity-check shape so a malformed store doesn't crash callers.
-        if (typeof b?.code !== "string" || typeof b?.hwid !== "string") return null;
-        if (!isValidCode(b.code) || b.hwid.length !== 32) return null;
-        return b;
-    } catch {
-        return null;
+        const stored = await DataStore.get<ClaimBinding>(STORE_KEY);
+        const validated = validateShape(stored);
+        if (validated) {
+            cache = validated;
+            loaded = true;
+            return;
+        }
+    } catch (e) {
+        console.warn("[vipClaim] DataStore.get failed:", e);
     }
+    // Fall back to legacy localStorage (one-shot migration).
+    try {
+        const raw = (globalThis as any).localStorage?.getItem?.(STORE_KEY);
+        if (raw) {
+            const parsed = validateShape(JSON.parse(raw));
+            if (parsed) {
+                cache = parsed;
+                // Forward-migrate so future reads come from DataStore.
+                await DataStore.set(STORE_KEY, parsed);
+                try { (globalThis as any).localStorage?.removeItem?.(STORE_KEY); } catch {}
+                console.log("[vipClaim] migrated binding from localStorage → DataStore");
+            }
+        }
+    } catch (e) {
+        // localStorage is undefined in modern Discord — this catches the throw.
+    }
+    loaded = true;
+})();
+
+export function readBinding(): ClaimBinding | null {
+    return cache;
+}
+
+/** Async version for callers that need to wait for DataStore to load (e.g.
+ *  plugin start hooks). Most callers can use the sync readBinding() since
+ *  DataStore loads in ~10ms during module init. */
+export async function readBindingAsync(): Promise<ClaimBinding | null> {
+    if (!loaded) await initPromise;
+    return cache;
 }
 
 export function writeBinding(b: ClaimBinding | null): void {
-    try {
-        if (b === null) localStorage.removeItem(STORE_KEY);
-        else localStorage.setItem(STORE_KEY, JSON.stringify(b));
-    } catch {}
+    cache = b;
+    // Persist async. Errors are logged but not surfaced — callers don't
+    // typically await the write, and DataStore failures are rare.
+    if (b === null) {
+        DataStore.del(STORE_KEY).catch(e => console.warn("[vipClaim] DataStore.del:", e));
+    } else {
+        DataStore.set(STORE_KEY, b).catch(e => console.warn("[vipClaim] DataStore.set:", e));
+    }
 }
 
 /**

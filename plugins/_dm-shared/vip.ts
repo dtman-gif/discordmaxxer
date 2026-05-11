@@ -57,13 +57,23 @@ export function isAdmin(userId?: string): boolean {
     }
 }
 
-/** Read tier from the VipClaim binding cache without importing the module
- *  (avoids circular dep — vipClaim imports vip for the Tier enum). */
+/** Read tier from the VipClaim binding cache without importing vipClaim.ts
+ *  (avoids circular dep — vipClaim imports vip for the Tier enum).
+ *
+ *  Uses the same `dm-vip-claim` DataStore key as vipClaim.ts. We populate
+ *  a local cache on module init; first read before DataStore loads briefly
+ *  returns FREE but plugin start happens AFTER DataStore is ready so this
+ *  is invisible in practice. */
+let claimCache: any = null;
+import * as DataStore from "@api/DataStore";
+DataStore.get<any>("dm-vip-claim").then(v => {
+    if (v && typeof v === "object") claimCache = v;
+}).catch(() => {});
+
 function tierFromClaimCache(): Tier {
     try {
-        const raw = localStorage.getItem("dm-vip-claim");
-        if (!raw) return Tier.FREE;
-        const b = JSON.parse(raw);
+        const b = claimCache;
+        if (!b) return Tier.FREE;
         if (typeof b?.tier !== "number") return Tier.FREE;
         const ageMs = Date.now() - (b?.lastValidatedAt ?? 0);
         if (ageMs > 24 * 60 * 60 * 1000) return Tier.FREE; // offline trust window
