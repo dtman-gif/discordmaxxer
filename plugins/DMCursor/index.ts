@@ -176,6 +176,9 @@ const CURSOR_ID = "dm-cursor";
 let cursorEl: HTMLDivElement | null = null;
 let style: HTMLStyleElement;
 let mousemoveHandler: ((e: MouseEvent) => void) | null = null;
+let fullscreenHandler: (() => void) | null = null;
+let lastX = -100;
+let lastY = -100;
 
 const settings = definePluginSettings({
     skin: {
@@ -242,10 +245,14 @@ function applySkin(skin: CursorSkin | "off") {
 
     mousemoveHandler = (e: MouseEvent) => {
         if (!cursorEl) return;
+        lastX = e.clientX;
+        lastY = e.clientY;
         cursorEl.style.left = e.clientX + "px";
         cursorEl.style.top = e.clientY + "px";
 
-        // Stiiizy: smoke trail
+        // Stiiizy: smoke trail. Append to the cursor's parent (fullscreen
+        // element when active, otherwise body) so trails don't fall behind
+        // the top-layer fullscreen content.
         if (skin === "stiiizy" && Math.random() > 0.35) {
             const smoke = document.createElement("div");
             smoke.className = "stiiizy-smoke";
@@ -254,17 +261,39 @@ function applySkin(skin: CursorSkin | "off") {
             smoke.style.setProperty("--smoke-dx", Math.random() * 24 - 12 + "px");
             smoke.style.setProperty("--smoke-dy", -25 - Math.random() * 35 + "px");
             smoke.style.setProperty("--smoke-size", 10 + Math.random() * 16 + "px");
-            document.body.appendChild(smoke);
+            (cursorEl.parentElement ?? document.body).appendChild(smoke);
             setTimeout(() => smoke.remove(), 1500);
         }
     };
     window.addEventListener("mousemove", mousemoveHandler);
+
+    // Fullscreen API moves the fullscreen element into the browser's top
+    // layer. Anything outside that element (including a cursor div on
+    // document.body) renders BELOW the top layer and is invisible. Discord
+    // uses requestFullscreen() on call-view video tiles and screenshare
+    // previews, so during fullscreen the custom cursor vanishes and the OS
+    // cursor stays hidden by our `cursor: none` rule — leaving no cursor
+    // visible until ~1s after exit. Fix: reparent the cursor div to the
+    // fullscreen element while active so it lives in the top layer too,
+    // and snap it back to last known coords on transition.
+    fullscreenHandler = () => {
+        if (!cursorEl) return;
+        const target = document.fullscreenElement ?? document.body;
+        if (cursorEl.parentElement !== target) target.appendChild(cursorEl);
+        cursorEl.style.left = lastX + "px";
+        cursorEl.style.top = lastY + "px";
+    };
+    document.addEventListener("fullscreenchange", fullscreenHandler);
 }
 
 function teardownTracking() {
     if (mousemoveHandler) {
         window.removeEventListener("mousemove", mousemoveHandler);
         mousemoveHandler = null;
+    }
+    if (fullscreenHandler) {
+        document.removeEventListener("fullscreenchange", fullscreenHandler);
+        fullscreenHandler = null;
     }
     cursorEl?.remove();
     cursorEl = null;
