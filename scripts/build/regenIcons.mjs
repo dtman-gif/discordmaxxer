@@ -106,15 +106,20 @@ await writeFile(ICO, ico);
 console.log(`[regenIcons] wrote ${ICO} (${ico.length} bytes)`);
 
 // build/shortcut-icon.ico — applied to Start Menu + Desktop .lnk via the
-// customInstall macro in build/installer.nsh. With bullet holes.
+// customInstall macro in build/installer.nsh. No bullet holes — bullet
+// holes were carrying through onto the pinned-taskbar slot (which uses
+// the shortcut icon while the app is closed) and reading as noise at
+// small sizes. Diggy's call 2026-05-12: cleaner glyph everywhere on
+// system shell surfaces; bullet-holes mark stays for marketing/branding
+// art only.
 const shortcutBuffers = [];
 for (const size of ICO_SIZES) {
-    const png = await makeSharp(holesSrc, 384)
+    const png = await makeSharp(noHolesSrc, 384)
         .resize(size, size)
         .png()
         .toBuffer();
     shortcutBuffers.push(png);
-    console.log(`  with-holes ${size}x${size} (${png.length} bytes)`);
+    console.log(`  no-holes (shortcut) ${size}x${size} (${png.length} bytes)`);
 }
 const shortcutIco = await pngToIco(shortcutBuffers);
 await writeFile(SHORTCUT_ICO, shortcutIco);
