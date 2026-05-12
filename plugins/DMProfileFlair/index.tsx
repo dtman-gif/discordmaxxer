@@ -314,30 +314,125 @@ async function broadcastThemeColors(primaryHex: string, secondaryHex: string): P
     }
 }
 
-// Fallback for the Nitro-gating discovered 2026-05-12: `theme_colors` PATCH
-// succeeds for non-Nitro accounts but Discord's renderer silently drops the
-// gradient when the source account has `premium_type === 0`. `accent_color`
-// is the older single-int field that renders unconditionally for everyone,
-// vanilla viewers included. We paint it with the user's primary theme color
-// as a single-color identity fallback so non-Nitro users still get *some*
-// visible profile color on vanilla Discord.
-async function broadcastAccentColor(hex: string): Promise<boolean> {
-    const c = hexToInt(hex);
-    if (c === null) {
-        toast("Set a valid #RRGGBB primary theme color before broadcasting accent.", Toasts.Type.FAILURE, 5000);
+// Extract a still PNG frame from an animated banner source (MP4/WEBM video,
+// animated GIF, or static image). Pulls the source through the dm-media://
+// proxy (Chromium ORB blocks arbitrary HTTPS in renderer fetch), then routes
+// through a Blob URL into a <video> or <img>, draws to a canvas, and emits
+// a PNG data URI suitable for Discord's banner PATCH field.
+//
+// Why we need this: DMProfileFlair's `myBannerUrl` can be an MP4/WEBM video.
+// Discord's banner endpoint accepts image formats only (no video), so the
+// existing "broadcast banner" path can't upload an animated source as-is.
+// This converts the first usable frame into PNG bytes Discord will accept
+// (Nitro permitting, server-side).
+async function extractStillFrameFromUrl(httpsUrl: string): Promise<string | null> {
+    try {
+        const proxied = httpsUrl.startsWith("https://")
+            ? `dm-media://proxy/${encodeURIComponent(httpsUrl)}`
+            : httpsUrl;
+        const res = await fetch(proxied);
+        if (!res.ok) {
+            console.warn(`[DMProfileFlair] extractStillFrame fetch failed: ${res.status}`);
+            return null;
+        }
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const mime = blob.type || "";
+        try {
+            return mime.startsWith("video/")
+                ? await drawVideoFirstFrame(blobUrl)
+                : await drawImageFirstFrame(blobUrl);
+        } finally {
+            URL.revokeObjectURL(blobUrl);
+        }
+    } catch (e) {
+        console.warn("[DMProfileFlair] extractStillFrameFromUrl failed:", e);
+        return null;
+    }
+}
+
+function drawVideoFirstFrame(blobUrl: string): Promise<string | null> {
+    return new Promise(resolve => {
+        const v = document.createElement("video");
+        v.muted = true;
+        v.playsInline = true;
+        v.preload = "auto";
+        let settled = false;
+        const finish = (out: string | null) => { if (!settled) { settled = true; resolve(out); } };
+        v.onloadeddata = () => {
+            try {
+                const c = document.createElement("canvas");
+                c.width = v.videoWidth || 600;
+                c.height = v.videoHeight || 240;
+                const ctx = c.getContext("2d");
+                if (!ctx) return finish(null);
+                ctx.drawImage(v, 0, 0);
+                finish(c.toDataURL("image/png"));
+            } catch (e) {
+                console.warn("[DMProfileFlair] drawVideoFirstFrame draw failed:", e);
+                finish(null);
+            }
+        };
+        v.onerror = () => finish(null);
+        setTimeout(() => finish(null), 10000); // hard timeout — Discord PATCH path doesn't deserve to hang
+        v.src = blobUrl;
+    });
+}
+
+function drawImageFirstFrame(blobUrl: string): Promise<string | null> {
+    return new Promise(resolve => {
+        const img = new Image();
+        let settled = false;
+        const finish = (out: string | null) => { if (!settled) { settled = true; resolve(out); } };
+        img.onload = () => {
+            try {
+                const c = document.createElement("canvas");
+                c.width = img.naturalWidth;
+                c.height = img.naturalHeight;
+                const ctx = c.getContext("2d");
+                if (!ctx) return finish(null);
+                ctx.drawImage(img, 0, 0);
+                finish(c.toDataURL("image/png"));
+            } catch (e) {
+                console.warn("[DMProfileFlair] drawImageFirstFrame draw failed:", e);
+                finish(null);
+            }
+        };
+        img.onerror = () => finish(null);
+        setTimeout(() => finish(null), 10000);
+        img.src = blobUrl;
+    });
+}
+
+async function broadcastStillBanner(animatedUrl: string): Promise<boolean> {
+    if (!URL_RE.test(animatedUrl)) {
+        toast("Set a valid banner URL above before extracting a still frame.", Toasts.Type.FAILURE, 5000);
+        return false;
+    }
+    toast("Extracting still frame from your animated banner…", Toasts.Type.MESSAGE, 3000);
+    const dataUri = await extractStillFrameFromUrl(animatedUrl);
+    if (!dataUri) {
+        toast("Couldn't extract a still frame — verify the banner URL is a direct image/video link.", Toasts.Type.FAILURE, 6000);
         return false;
     }
     try {
         await RestAPI.patch({
             url: "/users/@me/profile",
-            body: { accent_color: c }
+            body: { banner: dataUri }
         });
-        toast("✅ Accent color broadcast — solid color visible to everyone on vanilla Discord.", Toasts.Type.SUCCESS, 5000);
+        toast("✅ Still-frame banner broadcast — vanilla Discord users now see this image as your banner.", Toasts.Type.SUCCESS, 5000);
         return true;
     } catch (e: any) {
-        const { label } = classifyDiscordError(e);
-        console.warn("[DMProfileFlair] broadcastAccentColor failed:", e);
-        toast(`Accent broadcast failed: ${label}`, Toasts.Type.FAILURE, 6000);
+        const { nitroRequired, label } = classifyDiscordError(e);
+        console.warn("[DMProfileFlair] broadcastStillBanner failed:", e);
+        if (nitroRequired) {
+            toast(
+                "⚠ Discord requires Nitro to upload any banner — even a static image. The still frame extracted, but Discord rejected the upload server-side.",
+                Toasts.Type.FAILURE, 8000
+            );
+        } else {
+            toast(`Still banner broadcast failed: ${label}`, Toasts.Type.FAILURE, 6000);
+        }
         return false;
     }
 }
@@ -488,18 +583,21 @@ function FlairEditor() {
         setBusy(false);
     };
 
-    const onBroadcastAccent = async () => {
-        const p = s.myThemeColorPrimary.trim();
-        if (!p) {
-            toast("Set a primary theme color first — accent uses it as the single color.", Toasts.Type.FAILURE, 5000);
+    const onBroadcastStillBanner = async () => {
+        const u = s.myBannerUrl.trim();
+        if (!u) {
+            toast("Set your animated banner URL above before extracting a still.", Toasts.Type.FAILURE, 5000);
             return;
         }
-        if (!confirm(broadcastConfirmCopy("accent color (single color fallback)",
-            "Discord renders this for everyone, vanilla Discord included, even on FREE accounts. " +
-            "Use this when the gradient broadcast above looks default to your non-Nitro friends — Discord silently Nitro-gates the gradient render, but accent_color always paints."
+        if (!confirm(broadcastConfirmCopy("still-frame banner",
+            "We'll extract the first frame of your animated banner (MP4 / WEBM / GIF / static image), " +
+            "convert it to a PNG, and upload that to your real Discord profile. Vanilla viewers will see " +
+            "the still image as your banner.\n\n" +
+            "⚠ Discord requires Nitro to upload ANY banner — even a static one. Without Nitro the PATCH " +
+            "fails server-side and we'll surface a clear error."
         ))) return;
         setBusy(true);
-        await broadcastAccentColor(p);
+        await broadcastStillBanner(u);
         setBusy(false);
     };
 
@@ -592,20 +690,20 @@ function FlairEditor() {
                     These buttons below PATCH your <b>real Discord profile</b> so <b>everyone</b> sees it —
                     Nitro friends, normies, mobile-only users, the works. Fires once per click; never re-asserts.
                     <br /><br />
-                    <b>Theme gradient:</b> PATCH succeeds on free accounts but Discord silently <b>Nitro-gates the render</b> — vanilla viewers see your default profile unless you have Nitro. <b>Accent color (single):</b> the free-tier fallback — Discord renders it unconditionally. <b>Static avatar:</b> free. <b>Animated avatar + any banner:</b> Nitro required server-side.
+                    <b>Theme gradient:</b> PATCH succeeds on free accounts but Discord silently <b>Nitro-gates the render</b> — vanilla viewers see default unless you have Nitro. <b>Static avatar:</b> free. <b>Animated avatar + any banner (incl. still-frame):</b> Nitro required server-side.
                 </div>
                 <div style={broadcastBtnRow}>
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastColors} disabled={busy}>
                         📡 Broadcast theme gradient (Nitro-gated render)
                     </Button>
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastAccent} disabled={busy}>
-                        📡 Broadcast accent color (free fallback — vanilla-visible)
-                    </Button>
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastAvatar} disabled={busy}>
                         📡 Broadcast avatar (static = free, animated = Nitro)
                     </Button>
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastBanner} disabled={busy}>
-                        📡 Broadcast banner (Nitro required)
+                        📡 Broadcast banner as-is (Nitro required)
+                    </Button>
+                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastStillBanner} disabled={busy}>
+                        📡 Broadcast banner as still-frame (extract first frame from video/GIF, Nitro required)
                     </Button>
                 </div>
             </div>
