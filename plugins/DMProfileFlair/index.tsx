@@ -314,6 +314,34 @@ async function broadcastThemeColors(primaryHex: string, secondaryHex: string): P
     }
 }
 
+// Fallback for the Nitro-gating discovered 2026-05-12: `theme_colors` PATCH
+// succeeds for non-Nitro accounts but Discord's renderer silently drops the
+// gradient when the source account has `premium_type === 0`. `accent_color`
+// is the older single-int field that renders unconditionally for everyone,
+// vanilla viewers included. We paint it with the user's primary theme color
+// as a single-color identity fallback so non-Nitro users still get *some*
+// visible profile color on vanilla Discord.
+async function broadcastAccentColor(hex: string): Promise<boolean> {
+    const c = hexToInt(hex);
+    if (c === null) {
+        toast("Set a valid #RRGGBB primary theme color before broadcasting accent.", Toasts.Type.FAILURE, 5000);
+        return false;
+    }
+    try {
+        await RestAPI.patch({
+            url: "/users/@me/profile",
+            body: { accent_color: c }
+        });
+        toast("✅ Accent color broadcast — solid color visible to everyone on vanilla Discord.", Toasts.Type.SUCCESS, 5000);
+        return true;
+    } catch (e: any) {
+        const { label } = classifyDiscordError(e);
+        console.warn("[DMProfileFlair] broadcastAccentColor failed:", e);
+        toast(`Accent broadcast failed: ${label}`, Toasts.Type.FAILURE, 6000);
+        return false;
+    }
+}
+
 async function broadcastAvatar(url: string): Promise<boolean> {
     if (!URL_RE.test(url)) {
         toast("Avatar URL must be https:// and ≤250 chars before broadcasting.", Toasts.Type.FAILURE, 5000);
@@ -460,6 +488,21 @@ function FlairEditor() {
         setBusy(false);
     };
 
+    const onBroadcastAccent = async () => {
+        const p = s.myThemeColorPrimary.trim();
+        if (!p) {
+            toast("Set a primary theme color first — accent uses it as the single color.", Toasts.Type.FAILURE, 5000);
+            return;
+        }
+        if (!confirm(broadcastConfirmCopy("accent color (single color fallback)",
+            "Discord renders this for everyone, vanilla Discord included, even on FREE accounts. " +
+            "Use this when the gradient broadcast above looks default to your non-Nitro friends — Discord silently Nitro-gates the gradient render, but accent_color always paints."
+        ))) return;
+        setBusy(true);
+        await broadcastAccentColor(p);
+        setBusy(false);
+    };
+
     const onBroadcastAvatar = async () => {
         const u = s.myAvatarAnimatedUrl.trim();
         if (!u) {
@@ -549,11 +592,14 @@ function FlairEditor() {
                     These buttons below PATCH your <b>real Discord profile</b> so <b>everyone</b> sees it —
                     Nitro friends, normies, mobile-only users, the works. Fires once per click; never re-asserts.
                     <br /><br />
-                    <b>Theme colors:</b> work on free Discord. <b>Static avatar:</b> works on free. <b>Animated avatar + any banner:</b> Discord requires Nitro server-side.
+                    <b>Theme gradient:</b> PATCH succeeds on free accounts but Discord silently <b>Nitro-gates the render</b> — vanilla viewers see your default profile unless you have Nitro. <b>Accent color (single):</b> the free-tier fallback — Discord renders it unconditionally. <b>Static avatar:</b> free. <b>Animated avatar + any banner:</b> Nitro required server-side.
                 </div>
                 <div style={broadcastBtnRow}>
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastColors} disabled={busy}>
-                        📡 Broadcast theme colors (free)
+                        📡 Broadcast theme gradient (Nitro-gated render)
+                    </Button>
+                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastAccent} disabled={busy}>
+                        📡 Broadcast accent color (free fallback — vanilla-visible)
                     </Button>
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={onBroadcastAvatar} disabled={busy}>
                         📡 Broadcast avatar (static = free, animated = Nitro)
