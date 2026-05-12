@@ -404,6 +404,45 @@ function drawImageFirstFrame(blobUrl: string): Promise<string | null> {
     });
 }
 
+// ─── Recent-picks history ──────────────────────────────────────────────
+// Mirrors Discord's "your recent avatars" quick-pick. We keep the last
+// MAX_RECENTS values per channel (banner / avatar / color-pair), stored as
+// a single stringified-JSON object in `recentPicksJson` so we don't need
+// three more Vencord settings. Pushed on Save (after validation passes);
+// surfaced as a thumbnail row in FlairEditor.
+const MAX_RECENTS = 5;
+interface RecentPicks { banners: string[]; avatars: string[]; colors: string[]; }
+function readRecentPicks(): RecentPicks {
+    try {
+        const raw = JSON.parse(settings.store.recentPicksJson || "{}");
+        return {
+            banners: Array.isArray(raw.banners) ? raw.banners.filter((x: any) => typeof x === "string").slice(0, MAX_RECENTS) : [],
+            avatars: Array.isArray(raw.avatars) ? raw.avatars.filter((x: any) => typeof x === "string").slice(0, MAX_RECENTS) : [],
+            colors:  Array.isArray(raw.colors)  ? raw.colors.filter((x: any) => typeof x === "string").slice(0, MAX_RECENTS)  : []
+        };
+    } catch {
+        return { banners: [], avatars: [], colors: [] };
+    }
+}
+function writeRecentPicks(next: RecentPicks): void {
+    settings.store.recentPicksJson = JSON.stringify(next);
+}
+function pushRecent(arr: string[], value: string): string[] {
+    if (!value || !value.trim()) return arr;
+    const trimmed = value.trim();
+    const deduped = arr.filter(x => x !== trimmed);
+    return [trimmed, ...deduped].slice(0, MAX_RECENTS);
+}
+function recordRecentPicks(banner: string, avatar: string, primary: string, secondary: string): void {
+    const current = readRecentPicks();
+    const next: RecentPicks = {
+        banners: pushRecent(current.banners, banner),
+        avatars: pushRecent(current.avatars, avatar),
+        colors:  (primary && secondary) ? pushRecent(current.colors, `${primary}|${secondary}`) : current.colors
+    };
+    writeRecentPicks(next);
+}
+
 async function broadcastStillBanner(animatedUrl: string): Promise<boolean> {
     if (!URL_RE.test(animatedUrl)) {
         toast("Set a valid banner URL above before extracting a still frame.", Toasts.Type.FAILURE, 5000);
@@ -540,7 +579,17 @@ function FlairEditor() {
         setBusy(true);
         // Replace mode: the editor reflects the user's full intended state,
         // so we replace rather than merge — empty fields clear server-side.
-        await postFlairUpdate(proposed, true);
+        const ok = await postFlairUpdate(proposed, true);
+        if (ok) {
+            // Push the just-saved values to the recents history so Diggy can
+            // swap back like Discord's recent-avatars picker.
+            recordRecentPicks(
+                proposed.bannerUrl || "",
+                proposed.avatarAnimatedUrl || "",
+                proposed.themeColorPrimary || "",
+                proposed.themeColorSecondary || ""
+            );
+        }
         setBusy(false);
     };
 
@@ -657,9 +706,100 @@ function FlairEditor() {
         display: "flex", flexDirection: "column", gap: 6, marginTop: 8
     };
 
+    // ── Recent picks UI — Discord-style quick-pick history ─────────────────
+    const recents = readRecentPicks();
+    const hasAnyRecents = recents.banners.length > 0 || recents.avatars.length > 0 || recents.colors.length > 0;
+
+    const recentsWrap: React.CSSProperties = {
+        marginBottom: 12, paddingBottom: 10,
+        borderBottom: "1px dashed rgba(226, 91, 255, 0.35)"
+    };
+    const recentsRowStyle: React.CSSProperties = {
+        display: "flex", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap"
+    };
+    const recentsLabelStyle: React.CSSProperties = {
+        fontSize: 11, fontWeight: 600, color: "#cbd0e0", minWidth: 60
+    };
+    const thumbButtonStyle: React.CSSProperties = {
+        background: "transparent", border: "1px solid rgba(226, 91, 255, 0.35)",
+        borderRadius: 4, padding: 1, cursor: "pointer", display: "inline-flex"
+    };
+    const bannerThumbImg: React.CSSProperties = {
+        width: 60, height: 24, objectFit: "cover", borderRadius: 3, display: "block",
+        background: "#222"
+    };
+    const avatarThumbImg: React.CSSProperties = {
+        width: 26, height: 26, objectFit: "cover", borderRadius: "50%", display: "block",
+        background: "#222"
+    };
+    const colorSwatch = (p: string, s: string): React.CSSProperties => ({
+        width: 26, height: 26, borderRadius: 4, display: "inline-block",
+        background: `linear-gradient(180deg, ${p} 0%, ${s} 100%)`
+    });
+
     return (
         <div style={wrapStyle}>
             <div style={titleStyle}>🎨 Save your custom flair</div>
+
+            {hasAnyRecents && (
+                <div style={recentsWrap}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#fbefff", marginBottom: 4 }}>
+                        ⏱ Recent picks <span style={{ fontSize: 10.5, opacity: 0.7, fontWeight: 400 }}>— click to re-apply (then hit Save again to push to roster)</span>
+                    </div>
+                    {recents.banners.length > 0 && (
+                        <div style={recentsRowStyle}>
+                            <span style={recentsLabelStyle}>Banner:</span>
+                            {recents.banners.map(url => (
+                                <button
+                                    key={url}
+                                    title={url}
+                                    style={thumbButtonStyle}
+                                    onClick={() => { s.myBannerUrl = url; }}
+                                >
+                                    {/\.(mp4|webm|mov)(\?|$)/i.test(url)
+                                        ? <span style={{ ...bannerThumbImg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🎬</span>
+                                        : <img src={url} alt="" style={bannerThumbImg} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {recents.avatars.length > 0 && (
+                        <div style={recentsRowStyle}>
+                            <span style={recentsLabelStyle}>Avatar:</span>
+                            {recents.avatars.map(url => (
+                                <button
+                                    key={url}
+                                    title={url}
+                                    style={thumbButtonStyle}
+                                    onClick={() => { s.myAvatarAnimatedUrl = url; }}
+                                >
+                                    <img src={url} alt="" style={avatarThumbImg} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {recents.colors.length > 0 && (
+                        <div style={recentsRowStyle}>
+                            <span style={recentsLabelStyle}>Gradient:</span>
+                            {recents.colors.map(pair => {
+                                const [p, sec] = pair.split("|");
+                                if (!p || !sec) return null;
+                                return (
+                                    <button
+                                        key={pair}
+                                        title={`${p} → ${sec}`}
+                                        style={thumbButtonStyle}
+                                        onClick={() => { s.myThemeColorPrimary = p; s.myThemeColorSecondary = sec; }}
+                                    >
+                                        <span style={colorSwatch(p, sec)} />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {tmActive && (
                 <div style={tmWarnStyle}>
                     🟡 <b>TournamentMode is currently active.</b> Your banner and animated avatar
@@ -763,6 +903,16 @@ const settings = definePluginSettings({
             "localStorage in modern builds which breaks the normal binding-read path; this setting is " +
             "persisted to disk via Vencord, so it survives. Auto-normalized (dashes + case ignored).",
         default: ""
+    },
+    // Hidden — JSON-stringified history of the last MAX_RECENTS values for
+    // banner URL / avatar URL / color pair ("primary|secondary"). Pushed on
+    // every successful Save in FlairEditor; surfaced as a quick-pick row at
+    // the top of the editor so the user can swap back to a recent flair the
+    // way Discord shows your last-uploaded avatars on the avatar picker.
+    recentPicksJson: {
+        type: OptionType.STRING,
+        description: "(hidden) JSON history of recent flair picks — managed by the editor's Save button.",
+        default: "{}"
     },
     editor: {
         type: OptionType.COMPONENT,
