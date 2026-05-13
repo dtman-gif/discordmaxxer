@@ -51,6 +51,14 @@ const SettingsOptions: Record<string, Array<BooleanSetting | SettingsComponent>>
                 "Enable hardware video acceleration. This can improve performance of screenshare and video playback, but may cause graphical glitches and infinitely loading streams.",
             defaultValue: false,
             disabled: () => Settings.store.hardwareAcceleration === false
+        },
+        {
+            key: "screenshareForceWgc",
+            title: "Stream cursor on per-window fullscreen captures",
+            description:
+                "Forces Windows Graphics Capture for screenshares so the cursor shows up when capturing a single exclusive-fullscreen game window (e.g. Fortnite). LEAVE OFF if your screenshare audio sounds silent to viewers — WGC currently disagrees with Chromium's system-audio loopback on some setups, which is the more common bug. Requires a full app restart.",
+            defaultValue: false,
+            invisible: () => !isWindows
         }
     ],
     "User Interface": [

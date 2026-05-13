@@ -31,6 +31,14 @@ export interface Settings {
     splashBackground?: string;
     splashPixelated?: boolean;
 
+    // When true, force Chromium's Windows Graphics Capture path for WebRTC
+    // screenshare. WGC composites the system cursor into per-window captures
+    // of exclusive-fullscreen games (e.g. Fortnite) — but on some Windows
+    // audio setups it also prevents the "loopback" audio request from
+    // capturing system audio, leading to silent screenshares. Off by default
+    // for that reason. Requires a full app restart to take effect.
+    screenshareForceWgc?: boolean;
+
     spellCheckLanguages?: string[];
 
     audio?: {
