@@ -76,6 +76,12 @@ interface Source {
 }
 
 export let currentSettings: StreamSettings | null = null;
+// Source ID of the screen/window the user picked. Surfaced so the Windows
+// screenshare audio patch (src/renderer/patches/screenShareFixes.ts) can swap
+// Electron's system-wide audio "loopback" for a per-window audio capture via
+// chromeMediaSourceId — matches the behavior of stock Discord, which doesn't
+// leak incoming call audio back into the screenshare.
+export let currentSourceId: string | null = null;
 
 const logger = new Logger("VesktopScreenShare");
 
@@ -765,6 +771,7 @@ function ModalComponent({
                     disabled={!selected}
                     onClick={() => {
                         currentSettings = settings;
+                        currentSourceId = selected;
                         try {
                             const frameRate = Number(qualitySettings.frameRate);
                             const height = Number(qualitySettings.resolution);

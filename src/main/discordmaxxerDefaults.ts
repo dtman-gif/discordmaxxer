@@ -59,6 +59,7 @@ const PLUGINS_DEFAULT_ON: string[] = [
     "DMTheme",
     "VideoBackground",
     "DMHub",
+    "DMWelcome", // first-launch plugin tour + bundles + identity consent
     "DMCursor", // disabled-effect by default — user picks skin
     "DMPrivacy", // one-shot consent prompt to disable Discord telemetry
     "DMTrim", // hides Family Center / Nitro promos / HypeSquad

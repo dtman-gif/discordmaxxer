@@ -351,6 +351,12 @@ function renderPanelHTML(): string {
             : `<div class="dm-hub-info">Welcome back, ${tierLabel}.</div>`}
         <div class="dm-hub-section">Quick toggles</div>
         ${rows}
+        <div class="dm-hub-section">Discover</div>
+        <div class="dm-hub-row">
+            <div class="dm-hub-row-label">✨ Plugin Tour</div>
+            <button class="dm-hub-action-btn" data-action="open-tour">Open</button>
+        </div>
+        <div class="dm-hub-info">Browse featured plugins, enable bundles, and see what each one actually does — no settings-digging required.</div>
         <div class="dm-hub-section">Maintenance</div>
         <div class="dm-hub-row">
             <div class="dm-hub-row-label">♻️ Reload Discord (frees RAM)</div>
@@ -377,6 +383,12 @@ function ensurePanelRoot() {
         if (t.dataset.action === "reload-renderer") {
             panelRoot!.classList.add("hidden");
             location.reload();
+            return;
+        }
+        if (t.dataset.action === "open-tour") {
+            panelRoot!.classList.add("hidden");
+            const reopen = (globalThis as any).__dmReopenWelcome;
+            if (typeof reopen === "function") reopen();
             return;
         }
         if (t.classList.contains("dm-hub-toggle") && !t.dataset.locked) {
