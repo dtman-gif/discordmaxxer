@@ -51,9 +51,22 @@ const DM_APPLICATION_ID = "1502451778426372116";
 // asset (two uploads, same name → Discord can't disambiguate, renders ?).
 // Use the uniquely-named "discordmaxxer-logo-v1" instead. Same image content.
 const DM_LARGE_IMAGE_KEY = "discordmaxxer-logo-v1";
-const DM_LARGE_IMAGE_TEXT = "Discordmaxxer • maxxtopia.com";
 const DM_SMALL_IMAGE_KEY = ""; // e.g. "dm_badge" if a secondary asset is uploaded
 const DM_SMALL_IMAGE_TEXT = "maxxtopia.com";
+
+// Pull the running DM version from the Electron app at broadcast time so the
+// logo tooltip reads "Discordmaxxer v0.7.26 • maxxtopia.com" — lets anyone
+// (including vanilla viewers) tell which version a user is running just by
+// hovering the activity card's big logo. Critical for diagnosing stale builds
+// without having to DM users for screenshots.
+function getLargeImageText(): string {
+    try {
+        const v = (globalThis as any).VesktopNative?.app?.getVersion?.();
+        return v ? `Discordmaxxer v${v} • maxxtopia.com` : "Discordmaxxer • maxxtopia.com";
+    } catch {
+        return "Discordmaxxer • maxxtopia.com";
+    }
+}
 
 const DEFAULT_NAME = "Discordmaxxer";
 const DEFAULT_DETAILS = "Discord, optimized";
@@ -114,7 +127,7 @@ async function buildActivity() {
     const assets = largeId
         ? {
               large_image: largeId,
-              large_text: DM_LARGE_IMAGE_TEXT,
+              large_text: getLargeImageText(),
               ...(smallId ? { small_image: smallId, small_text: DM_SMALL_IMAGE_TEXT } : {})
           }
         : undefined;
