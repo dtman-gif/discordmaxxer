@@ -51,6 +51,51 @@ const PROFILE_FIELD_MIN_TIER: Record<keyof ProfileFlair, Tier> = {
 const URL_RE = /^https:\/\/[^\s]{1,250}$/;
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
+// Hosts that serve HTML pages, not direct media bytes. Pasting one of these
+// URLs into a banner/avatar field saves "successfully" but the <img>/<video>
+// load gets HTML and renders blank. Catch it early with a friendly hint.
+// Special-cased: imgur.com and reddit.com have direct-CDN siblings that ARE
+// fine (i.imgur.com, i.redd.it, v.redd.it) — `detectPageHostMistake` checks
+// the exact hostname so those pass through.
+const PAGE_HOSTS_TO_HINT: Record<string, string> = {
+    "tiktok.com": "TikTok",
+    "www.tiktok.com": "TikTok",
+    "vm.tiktok.com": "TikTok",
+    "youtube.com": "YouTube",
+    "www.youtube.com": "YouTube",
+    "m.youtube.com": "YouTube",
+    "youtu.be": "YouTube",
+    "twitter.com": "Twitter/X",
+    "x.com": "Twitter/X",
+    "instagram.com": "Instagram",
+    "www.instagram.com": "Instagram",
+    "imgur.com": "Imgur (page link)",
+    "www.imgur.com": "Imgur (page link)",
+    "twitch.tv": "Twitch",
+    "www.twitch.tv": "Twitch",
+    "clips.twitch.tv": "Twitch",
+    "reddit.com": "Reddit (page link)",
+    "www.reddit.com": "Reddit (page link)",
+    "old.reddit.com": "Reddit (page link)",
+    "facebook.com": "Facebook",
+    "www.facebook.com": "Facebook",
+    "fb.watch": "Facebook",
+    "vimeo.com": "Vimeo",
+    "www.vimeo.com": "Vimeo"
+};
+
+function detectPageHostMistake(url: string): string | null {
+    let host: string;
+    try { host = new URL(url).hostname.toLowerCase(); }
+    catch { return null; }  // URL_RE catches malformed strings separately
+    const label = PAGE_HOSTS_TO_HINT[host];
+    if (!label) return null;
+    return `That looks like a ${label} page link, not a direct media file. ` +
+        "DMProfileFlair needs a direct .mp4 / .webm / .gif / .png / .jpg URL " +
+        "(it fetches the bytes — an HTML page renders blank). " +
+        "Fix: download the video (yt-dlp, SnapTik, SSSTik) → drag onto catbox.moe → use the https://files.catbox.moe/... URL it gives you.";
+}
+
 function toast(msg: string, type: any = Toasts.Type.SUCCESS, durationMs = 3000) {
     Toasts.show({
         message: msg,
@@ -205,6 +250,8 @@ function validateLocal(profile: Partial<ProfileFlair>): string | null {
         if (!v) continue;
         if (k === "bannerUrl" || k === "avatarAnimatedUrl") {
             if (!URL_RE.test(v as string)) return `${k} must be https:// and ≤250 chars`;
+            const pageHint = detectPageHostMistake(v as string);
+            if (pageHint) return pageHint;
         }
         // Color fields are auto-normalized in onSave (# prefix auto-added),
         // so by the time we reach validation they should already be canonical
@@ -448,6 +495,8 @@ async function broadcastStillBanner(animatedUrl: string): Promise<boolean> {
         toast("Set a valid banner URL above before extracting a still frame.", Toasts.Type.FAILURE, 5000);
         return false;
     }
+    const pageHint = detectPageHostMistake(animatedUrl);
+    if (pageHint) { toast(pageHint, Toasts.Type.FAILURE, 8000); return false; }
     toast("Extracting still frame from your animated banner…", Toasts.Type.MESSAGE, 3000);
     const dataUri = await extractStillFrameFromUrl(animatedUrl);
     if (!dataUri) {
@@ -481,6 +530,8 @@ async function broadcastAvatar(url: string): Promise<boolean> {
         toast("Avatar URL must be https:// and ≤250 chars before broadcasting.", Toasts.Type.FAILURE, 5000);
         return false;
     }
+    const pageHint = detectPageHostMistake(url);
+    if (pageHint) { toast(pageHint, Toasts.Type.FAILURE, 8000); return false; }
     toast("Downloading avatar bytes…", Toasts.Type.MESSAGE, 3000);
     const dataUri = await urlToDataUri(url);
     if (!dataUri) {
@@ -514,6 +565,8 @@ async function broadcastBanner(url: string): Promise<boolean> {
         toast("Banner URL must be https:// and ≤250 chars before broadcasting.", Toasts.Type.FAILURE, 5000);
         return false;
     }
+    const pageHint = detectPageHostMistake(url);
+    if (pageHint) { toast(pageHint, Toasts.Type.FAILURE, 8000); return false; }
     toast("Downloading banner bytes…", Toasts.Type.MESSAGE, 3000);
     const dataUri = await urlToDataUri(url);
     if (!dataUri) {
