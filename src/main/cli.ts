@@ -60,7 +60,7 @@ const extraOptions = {
     "ozone-platform": {
         hidden: process.platform !== "linux",
         type: "string",
-        description: "Whether to run Vesktop in Wayland or X11 (XWayland)",
+        description: "Whether to run Discordmaxxer in Wayland or X11 (XWayland)",
         options: ["x11", "wayland"]
     }
 } satisfies Record<string, Option>;
@@ -80,13 +80,13 @@ export function checkCommandLineForHelpOrVersion() {
     const { help, version } = CommandLine.values;
 
     if (version) {
-        console.log(`Vesktop v${app.getVersion()}`);
+        console.log(`Discordmaxxer v${app.getVersion()}`);
         app.exit(0);
     }
 
     if (help) {
         const base = stripIndent`
-            Vesktop v${app.getVersion()}
+            Discordmaxxer v${app.getVersion()}
 
             Usage: ${basename(process.execPath)} [options] [url]
 
@@ -96,7 +96,7 @@ export function checkCommandLineForHelpOrVersion() {
             Chromium Options:
               See <https://peter.sh/experiments/chromium-command-line-switches> - only some of them work
 
-            Vesktop Options:
+            Discordmaxxer Options:
         `;
 
         const optionLines = Object.entries(options)
